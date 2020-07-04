@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="ProteinSearch">
+    <title>ProteinSearch</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
+</head>
+
+<body>
+
+<div class="container p-3">
+    <div class="row">
+        <div class="col">
+            <h1>ProteinSearch - Results</h1>
+        </div>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="col">
+            Most similar objects to the query: <span class="font-weight-bold">{{ query }}</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table">
+                <tr>
+                    <th>No.</th>
+                    <th>ID</th>
+                    <th>Q-score</th>
+                </tr>
+                {% for id, qscore in results %}
+                    <tr>
+                        <td>
+                            {{ loop.index }}
+                        </td>
+                        <td>
+                            {{ id }}
+                        </td>
+                        <td> {{ qscore | round(2) }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <a class="btn btn-primary" href="/">Back</a>
+        </div>
+    </div>
+</div>
+
+
+<script src="{{ url_for('static', filename='jquery/jquery-3.4.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
