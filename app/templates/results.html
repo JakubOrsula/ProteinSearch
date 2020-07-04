@@ -24,6 +24,12 @@
     </div>
     <div class="row">
         <div class="col">
+            Calculated distances: {{ distances }} (OK: {{ distances - dissimilar - timeout }}
+            Dissimilar: {{ dissimilar }} Timeout: {{ timeout }})
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
             <table class="table">
                 <tr>
                     <th>No.</th>
@@ -40,6 +46,10 @@
                         </td>
                         <td> {{ qscore | round(2) }}
                         </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="3">No objects found!</td>
                     </tr>
                 {% endfor %}
             </table>

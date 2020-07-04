@@ -21,11 +21,20 @@ WORKDIR /
 
 RUN mkdir -p /data/PDBe_clone_binary
 
+# Empty pivot list for now
+RUN touch /data/pivots
+
+RUN mkdir -p /var/local/ProteinSearch/
+
+RUN chown -R apache:apache /var/local/ProteinSearch
+
 RUN mkdir -p /usr/local/www/ProteinSearch
 
 COPY docker/ProteinSearch.conf /etc/httpd/conf.d/
 
 COPY app/ /usr/local/www/ProteinSearch/
+
+COPY docker/config.py /usr/local/www/ProteinSearch/
 
 ENTRYPOINT ["/usr/sbin/httpd", "-D", "FOREGROUND"]
 
