@@ -24,7 +24,7 @@ RUN mkdir -p /data/PDBe_clone_binary
 # Empty pivot list for now
 RUN touch /data/pivots
 
-RUN mkdir -p /var/local/ProteinSearch/
+RUN mkdir -p /var/local/ProteinSearch/upload /var/local/ProteinSearch/chains
 
 RUN chown -R apache:apache /var/local/ProteinSearch
 

@@ -18,31 +18,62 @@
     </div>
     <hr>
 
-    <form method="post" enctype="multipart/form-data" action="/">
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-danger mt-1 alert-dismissible fade show" role="alert">{{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+    <form method="post" enctype="multipart/form-data" action="/upload">
         <div class="row">
-            <div class="col-6">
-            <label class="form-check-label" for="file">Input file</label>
-            <input class="form-check" type="file" name="file" id="file"  accept=".pdb, .cif">
+            <div class="col">
+                <fieldset id="file-fs" {% if uploaded %} disabled="disabled" {% endif %}>
+                <label class="form-check-label" for="file">Input file</label>
+                <input class="form-check" type="file" name="file" id="file" accept=".pdb, .cif">
                 <small class="form-text muted">
                     Upload single PDB or mmCIF file.
                 </small>
-            </div>
-            <div class="col-6">
-                <label class="form-check-label" for="chain">Chain</label>
-                <input class="form-check" type="text" name="chain" id="chain">
-                <small class="form-text muted">
-                    Enter the chain specifier.
-                </small>
+                </fieldset>
             </div>
         </div>
         <div class="row">
             <div class="col">
-                <button class="btn btn-primary" type="submit" id="run" disabled>Run</button>
+                <input class="btn btn-primary" type="submit" id="upload" value="Upload" disabled>
             </div>
         </div>
     </form>
 
-
+    <hr class="mb-2">
+    <form method="post" enctype="multipart/form-data" action="/run">
+        <div class="row">
+            <div class="col">
+                <fieldset id="chain-fs"  {% if not uploaded %} disabled="disabled" {% endif %}>
+                    <label class="form-check-label" for="chain">Chain</label>
+                    <select class="form-control w-auto" name="chain">
+                        {% for id in chains %}
+                            <option value="{{ id }}">{{ id }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text muted">
+                        Enter the chain specifier.
+                    </small>
+                </fieldset>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <input class="btn btn-success" type="submit" id="Run" value="Run" {% if not uploaded %} disabled {% endif %}>
+                <a class="btn btn-secondary" href="/">Reset</a>
+            </div>
+        </div>
+    </form>
 </div>
 
 

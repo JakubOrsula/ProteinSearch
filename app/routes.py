@@ -1,11 +1,11 @@
-from flask import render_template, request
+from flask import render_template, request, flash, redirect, url_for
 from werkzeug.utils import secure_filename
 import random
 import os
 import subprocess
 
 from . import application
-from .config import QUERIES_DIR, ARCHIVE_DIR, PRELOAD_LIST, OBJECTS_COUNT
+from .config import CHAINS_DIR, ARCHIVE_DIR, PRELOAD_LIST, OBJECTS_COUNT, UPLOAD_DIR
 
 
 def pick_objects(number):
@@ -18,15 +18,26 @@ def pick_objects(number):
     return objects
 
 
+def prepare_query(filename):
+    args = ['get_chains', filename, CHAINS_DIR]
+    p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if p.returncode:
+        print('Unable to prepare query: ' + p.stderr.decode('utf-8'))
+        raise RuntimeError()
+
+    return p.stdout.decode('utf-8').splitlines()
+
+
 def calculate_distances(query, objects):
     env = dict(os.environ)
     env['LD_LIBRARY_PATH'] = '/usr/local/lib'
     args = ['java', '-cp', '/usr/local/lib/java_distance.jar:/usr/local/lib/proteins-1.0.jar', 'TestJava', ARCHIVE_DIR,
-            PRELOAD_LIST, query, *objects]
+            PRELOAD_LIST, f'_{query}', *objects]
 
     p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     if p.returncode:
-        raise RuntimeError('Calculation failed')
+        print('Calculation failed: ' + p.stderr.decode('utf-8'))
+        raise RuntimeError()
 
     distances = []
     for line in p.stdout.decode('utf-8').splitlines():
@@ -35,51 +46,56 @@ def calculate_distances(query, objects):
     return distances
 
 
-@application.route('/', methods=['GET', 'POST'])
+@application.route('/')
 def index():
-    if request.method == 'POST':
-        chain = request.form['chain'].upper()
-        file = request.files['file']
-        filename = secure_filename(file.filename).upper()
+    return render_template('index.html', chains=[], uploaded=False)
 
-        basename, ext = os.path.splitext(filename)
 
-        ext = ext.lower()
-        if ext == '.pdb':
-            prefix = 'p'
-        else:
-            prefix = 'c'
+@application.route('/upload', methods=['POST'])
+def upload():
+    file = request.files['file']
+    filename = secure_filename(file.filename)
 
-        i = 0
-        while os.path.exists(os.path.join(QUERIES_DIR, f'{prefix}{i:02d}{ext}')):
-            i += 1
+    path = os.path.join(UPLOAD_DIR, filename)
+    file.save(path)
 
-        new_id = f'{prefix}{i:02d}'
+    try:
+        ids = prepare_query(path)
+    except RuntimeError:
+        flash('Cannot read input file')
+        return redirect(url_for('index'))
 
-        path = os.path.join(QUERIES_DIR, f'{new_id}{ext}')
-        file.save(path)
+    if not ids:
+        flash('No chains detected')
+        return redirect(url_for('index'))
 
-        query_id = f'_{new_id}:{chain}'
+    return render_template('index.html', chains=ids, uploaded=True)
 
-        objects = pick_objects(OBJECTS_COUNT)
 
-        distances = calculate_distances(query_id, objects)
-        results = []
-        dissimilar = 0
-        timeout = 0
-        for obj, dist in zip(objects, distances):
-            if dist < 1:
-                results.append((obj, 1 - dist))
-            elif dist == 2:
-                dissimilar += 1
-            elif dist == 3:
-                timeout += 1
+@application.route('/run', methods=['POST'])
+def run():
+    chain = request.form['chain']
 
-        results.sort(key=lambda x: x[1], reverse=True)
+    objects = pick_objects(OBJECTS_COUNT)
 
-        query = f'{basename}:{chain}'
+    try:
+        distances = calculate_distances(chain, objects)
+    except RuntimeError:
+        flash('Calculation failed')
+        return render_template('index.html', chains=[], uploaded=False)
 
-        return render_template('results.html', query=query, dissimilar=dissimilar, distances=OBJECTS_COUNT,
-                               timeout=timeout, results=results)
+    results = []
+    dissimilar = 0
+    timeout = 0
+    for obj, dist in zip(objects, distances):
+        if dist < 1:
+            results.append((obj, 1 - dist))
+        elif dist == 2:
+            dissimilar += 1
+        elif dist == 3:
+            timeout += 1
 
-    return render_template('index.html')
+    results.sort(key=lambda x: x[1], reverse=True)
+
+    return render_template('results.html', query=chain, dissimilar=dissimilar, distances=OBJECTS_COUNT,
+                           timeout=timeout, results=results)

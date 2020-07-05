@@ -3,26 +3,15 @@
 
 function init_index() {
     let $file = $('#file');
-    let $chain = $('#chain');
-    let $run = $('#run');
+    let $upload = $('#upload');
 
     $file.on('change', function () {
-        if ($file.val() && $chain.val()) {
-            $run.attr('disabled', false);
+        if ($file.val()) {
+            $upload.attr('disabled', false);
         } else {
-            $run.attr('disabled', true);
+            $upload.attr('disabled', true);
         }
     });
-
-    $chain.on('input', function () {
-        if ($file.val() && $chain.val()) {
-            $run.attr('disabled', false);
-        } else {
-            $run.attr('disabled', true);
-        }
-    });
-
-
 }
 
 
