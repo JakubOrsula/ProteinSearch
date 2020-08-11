@@ -1,5 +1,5 @@
 FROM fedora:32
-RUN dnf install -y gcc g++ git cmake make java-11-openjdk-devel zlib-devel tbb-devel telnet python3-flask httpd python3-mod_wsgi
+RUN dnf install -y gcc g++ git cmake make java-11-openjdk-devel zlib-devel tbb-devel telnet python3-flask httpd python3-mod_wsgi pybind11-devel python3-devel
 
 WORKDIR /usr/src
 
@@ -24,7 +24,7 @@ RUN mkdir -p /data/PDBe_clone_binary
 # Empty pivot list for now
 RUN touch /data/pivots
 
-RUN mkdir -p /var/local/ProteinSearch/upload /var/local/ProteinSearch/chains
+RUN mkdir -p /var/local/ProteinSearch/computations
 
 RUN chown -R apache:apache /var/local/ProteinSearch
 

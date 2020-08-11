@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="ProteinSearch">
+    <title>ProteinSearch - Details (query chain {{ query_chain }} and {{ object }})</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='litemol/css/LiteMol-plugin-light.min.css') }}" type="text/css" />
+
+</head>
+
+<body>
+
+{% set pdb_id, chain_id = object.split(':') %}
+
+<div class="container p-3">
+    <div class="row">
+        <div class="col">
+            <h1>ProteinSearch - Details</h1>
+        </div>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="col">
+            Details about the superposition of query chain <span class="font-weight-bold">{{ query_chain }}</span> and {{ object }})
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table">
+                <tr>
+                    <th>Object</th>
+                    <th>Protein info from PDBe</th>
+                    <th>Q-score</th>
+                    <th>RMSD</th>
+                    <th>Sequence identity</th>
+                    <th>Residues aligned</th>
+                </tr>
+                    <tr>
+                        <td>
+                            {{ object }}
+                        </td>
+                        <td>
+                            <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ pdb_id | lower }}" target="_blank">{{ pdb_id }}</a>
+                        </td>
+                        <td>
+                            {{ qscore | round(2) }}
+                        </td>
+                        <td>
+                            {{ rmsd | round(2) }}
+                        </td>
+                        <td>
+                            {{ seq_identity | round(2) }}
+                        </td>
+                        <td>
+                            {{ res_aligned }}
+                        </td>
+                    </tr>
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+         <div id="litemol" style="margin-top:100px; height:600px; position: relative"></div>
+        </div>
+    </div>
+</div>
+
+
+<script src="{{ url_for('static', filename='jquery/jquery-3.4.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='litemol/LiteMol-plugin.min.js') }}"></script>
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

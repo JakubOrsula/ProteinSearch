@@ -31,7 +31,7 @@
     {% endif %}
 {% endwith %}
 
-    <form method="post" enctype="multipart/form-data" action="/upload">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('upload') }}">
         <div class="row">
             <div class="col">
                 <fieldset id="file-fs" {% if uploaded %} disabled="disabled" {% endif %}>
@@ -51,7 +51,7 @@
     </form>
 
     <hr class="mb-2">
-    <form method="post" enctype="multipart/form-data" action="/run">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('run', comp_id=comp_id) }}">
         <div class="row">
             <div class="col">
                 <fieldset id="chain-fs"  {% if not uploaded %} disabled="disabled" {% endif %}>
@@ -70,7 +70,7 @@
         <div class="row">
             <div class="col">
                 <input class="btn btn-success" type="submit" id="Run" value="Run" {% if not uploaded %} disabled {% endif %}>
-                <a class="btn btn-secondary" href="/">Reset</a>
+                <a class="btn btn-secondary" href="{{ url_for('index') }}">Reset</a>
             </div>
         </div>
     </form>

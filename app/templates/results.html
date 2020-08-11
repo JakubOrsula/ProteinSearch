@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="ProteinSearch">
-    <title>ProteinSearch</title>
+    <title>ProteinSearch - Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
 </head>
 
@@ -19,13 +19,12 @@
     <hr>
     <div class="row">
         <div class="col">
-            Most similar objects to the query: <span class="font-weight-bold">{{ query }}</span>
+            Most similar objects to the query chain: <span class="font-weight-bold">{{ query }}</span>
         </div>
     </div>
     <div class="row">
         <div class="col">
-            Calculated distances: {{ distances }} (OK: {{ distances - dissimilar - timeout }}
-            Dissimilar: {{ dissimilar }} Timeout: {{ timeout }})
+            Calculated distances: {{ no_distances }}
         </div>
     </div>
     <div class="row">
@@ -34,9 +33,13 @@
                 <tr>
                     <th>No.</th>
                     <th>ID</th>
-                    <th>Q-score</th>
+                    <th>Protein info from PDBe</th>
+                    <th>Q-score (with details)</th>
+
                 </tr>
                 {% for id, qscore in results %}
+                    {% set pdbid = id[:4] %}
+                    {% set chain_id = id[4:] %}
                     <tr>
                         <td>
                             {{ loop.index }}
@@ -44,12 +47,16 @@
                         <td>
                             {{ id }}
                         </td>
-                        <td> {{ qscore | round(2) }}
+                        <td>
+                            <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ pdbid | lower }}" target="_blank">{{ pdbid }}</a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('get_details', comp_id=comp_id, object=id, chain=query) }}" target="_blank">{{ qscore | round(2) }}</a>
                         </td>
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="3">No objects found!</td>
+                        <td colspan="4">No objects found!</td>
                     </tr>
                 {% endfor %}
             </table>
@@ -57,7 +64,7 @@
     </div>
     <div class="row">
         <div class="col">
-            <a class="btn btn-primary" href="/">Back</a>
+            <a class="btn btn-primary" href="{{ url_for('index') }}">Back</a>
         </div>
     </div>
 </div>
