@@ -19,7 +19,7 @@ RUN make install
 
 WORKDIR /
 
-RUN mkdir -p /data/PDBe_clone_binary
+RUN mkdir -p /data/PDBe_clone_binary /data/PDBe_clone
 
 # Empty pivot list for now
 RUN touch /data/pivots

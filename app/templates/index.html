@@ -18,28 +18,29 @@
     </div>
     <hr>
 
+    {% set uploaded = uploaded | default(False, True) %}
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-danger mt-1 alert-dismissible fade show" role="alert">{{ message }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger mt-1 alert-dismissible fade show" role="alert">{{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('upload') }}">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('index') }}">
         <div class="row">
             <div class="col">
                 <fieldset id="file-fs" {% if uploaded %} disabled="disabled" {% endif %}>
-                <label class="form-check-label" for="file">Input file</label>
-                <input class="form-check" type="file" name="file" id="file" accept=".pdb, .cif">
-                <small class="form-text muted">
-                    Upload single PDB or mmCIF file.
-                </small>
+                    <label class="form-check-label" for="file">Input file</label>
+                    <input class="form-check" type="file" name="file" id="file" accept=".pdb, .cif">
+                    <small class="form-text muted">
+                        Upload single PDB or mmCIF file.
+                    </small>
                 </fieldset>
             </div>
         </div>
@@ -51,16 +52,23 @@
     </form>
 
     <hr class="mb-2">
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('run', comp_id=comp_id) }}">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('results') }}">
+        <input type="hidden" name="comp-id" id="comp-id" value="{{ comp_id }}">
         <div class="row">
             <div class="col">
                 <fieldset id="chain-fs"  {% if not uploaded %} disabled="disabled" {% endif %}>
-                    <label class="form-check-label" for="chain">Chain</label>
+                    {% if uploaded %}
+                        <label class="form-check-label" for="chain">Chains for {{ filename }}</label>
+                    {% else %}
+                        <label class="form-check-label" for="chain">Chains</label>
+                    {% endif %}
+
                     <select class="form-control w-auto" name="chain">
-                        {% for id in chains %}
+                        {% for id in chains | default([], True) %}
                             <option value="{{ id }}">{{ id }}</option>
                         {% endfor %}
                     </select>
+                    <input type="hidden" name="filename" value="{{ filename }}">
                     <small class="form-text muted">
                         Enter the chain specifier.
                     </small>
@@ -69,7 +77,8 @@
         </div>
         <div class="row">
             <div class="col">
-                <input class="btn btn-success" type="submit" id="Run" value="Run" {% if not uploaded %} disabled {% endif %}>
+                <input class="btn btn-success" type="submit" id="run" value="Run" {% if not uploaded %}
+                       disabled {% endif %}>
                 <a class="btn btn-secondary" href="{{ url_for('index') }}">Reset</a>
             </div>
         </div>

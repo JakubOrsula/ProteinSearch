@@ -21,7 +21,7 @@ function load_molecule(plugin, comp_id, object, index) {
     object_params.set('comp_id', comp_id);
     object_params.set('object', object);
 
-    const id = object === '_query' ? 'query': object;
+    const id = object === '_query' ? 'query' : object;
 
     plugin.loadMolecule({
         id: id,

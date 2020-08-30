@@ -19,7 +19,7 @@
     <hr>
     <div class="row">
         <div class="col">
-            Most similar objects to the query chain: <span class="font-weight-bold">{{ query }}</span>
+            Most similar objects to the query chain <span class="font-weight-bold">{{ query }}</span> from <span class="font-weight-bold">{{ filename }}
         </div>
     </div>
     <div class="row">
@@ -37,7 +37,9 @@
                     <th>Q-score (with details)</th>
 
                 </tr>
-                {% for id, qscore in results %}
+                {% for res in results %}
+                    {% set id = res['object'] %}
+                    {% set qscore = res['qscore'] %}
                     {% set pdbid = id[:4] %}
                     {% set chain_id = id[4:] %}
                     <tr>
