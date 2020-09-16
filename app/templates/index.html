@@ -52,7 +52,7 @@
     </form>
 
     <hr class="mb-2">
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('results') }}">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('results', comp_id=comp_id) }}">
         <input type="hidden" name="comp-id" id="comp-id" value="{{ comp_id }}">
         <div class="row">
             <div class="col">

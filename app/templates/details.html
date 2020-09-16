@@ -23,41 +23,7 @@
     <hr>
     <div class="row">
         <div class="col">
-            Details about the superposition of query chain <span class="font-weight-bold">{{ query_chain }}</span> and {{ object }})
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <table class="table">
-                <tr>
-                    <th>Object</th>
-                    <th>Protein info from PDBe</th>
-                    <th>Q-score</th>
-                    <th>RMSD</th>
-                    <th>Sequence identity</th>
-                    <th>Residues aligned</th>
-                </tr>
-                    <tr>
-                        <td>
-                            {{ object }}
-                        </td>
-                        <td>
-                            <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ pdb_id | lower }}" target="_blank">{{ pdb_id }}</a>
-                        </td>
-                        <td>
-                            {{ qscore | round(2) }}
-                        </td>
-                        <td>
-                            {{ rmsd | round(2) }}
-                        </td>
-                        <td>
-                            {{ seq_identity | round(2) }}
-                        </td>
-                        <td>
-                            {{ res_aligned }}
-                        </td>
-                    </tr>
-            </table>
+            Details about the superposition of query chain <span class="font-weight-bold">{{ query_chain }}</span> and {{ object }}
         </div>
     </div>
     <div class="row">

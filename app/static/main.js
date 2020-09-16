@@ -15,6 +15,49 @@ function init_index() {
 }
 
 
+function init_results() {
+    const parameters_string = window.location.search;
+    const parameters = new URLSearchParams(parameters_string);
+
+    let object_params = new URLSearchParams();
+    const comp_id = parameters.get('comp_id');
+    object_params.set('comp_id', comp_id);
+
+    (function worker() {
+        $.ajax({
+            url: `/get_results?${object_params.toString()}`,
+            success: function (data) {
+                $('#done').html(`Calculated ${data['completed']} out of ${data['total']}`);
+                let idx = 0;
+                $('#table > tbody').empty();
+                for (const res of data['results']) {
+                    let pdbid = res['object'].split(':')[0].toLowerCase();
+                    let details_params = new URLSearchParams();
+                    details_params.set('comp_id', comp_id);
+                    details_params.set('object', res['object']);
+                    details_params.set('chain', $('#chain').text());
+                    let line = `<tr>
+                                <td>${idx + 1}</td>
+                                <td>${res['object']}</td>
+                                <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank"> ${pdbid}</a></td>
+                                <td>${res['qscore']}</td>
+                                <td>${res['rmsd']}</td>
+                                <td>${res['aligned']}</td>
+                                <td>${res['seq_id']}</td>
+                                <td><a href="/details?${details_params.toString()}" target="_blank">Show alignment</a></td>
+                                </tr>`
+                    $('#table > tbody:last-child').append(line);
+                    idx++;
+                }
+                if (data['status'] === 'COMPUTING') {
+                    setTimeout(worker, 3000);
+                }
+            }
+        });
+    })();
+}
+
+
 function load_molecule(plugin, comp_id, object, index) {
 
     let object_params = new URLSearchParams();
@@ -73,7 +116,10 @@ $(function () {
     let page = window.location.pathname;
     if (page === '/') {
         init_index();
+    } else if (page === '/results') {
+        init_results();
     } else if (page === '/details') {
         init_details();
     }
-});
+})
+;

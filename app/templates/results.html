@@ -19,48 +19,30 @@
     <hr>
     <div class="row">
         <div class="col">
-            Most similar objects to the query chain <span class="font-weight-bold">{{ query }}</span> from <span class="font-weight-bold">{{ filename }}
+            Most similar objects to the query chain <span class="font-weight-bold" id="chain">{{ query }}</span> from <span class="font-weight-bold">{{ filename }}</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col" id="done">
         </div>
     </div>
     <div class="row">
         <div class="col">
-            Calculated distances: {{ no_distances }}
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <table class="table">
-                <tr>
+            <table class="table" id="table">
+            <thead>
+            <tr>
                     <th>No.</th>
                     <th>ID</th>
                     <th>Protein info from PDBe</th>
-                    <th>Q-score (with details)</th>
-
+                    <th>Q-score</th>
+                    <th>RMSD</th>
+                    <th>Aligned res.</th>
+                    <th>Seq. identity</th>
+                    <th>Show</th>
                 </tr>
-                {% for res in results %}
-                    {% set id = res['object'] %}
-                    {% set qscore = res['qscore'] %}
-                    {% set pdbid = id[:4] %}
-                    {% set chain_id = id[4:] %}
-                    <tr>
-                        <td>
-                            {{ loop.index }}
-                        </td>
-                        <td>
-                            {{ id }}
-                        </td>
-                        <td>
-                            <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ pdbid | lower }}" target="_blank">{{ pdbid }}</a>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('get_details', comp_id=comp_id, object=id, chain=query) }}" target="_blank">{{ qscore | round(2) }}</a>
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="4">No objects found!</td>
-                    </tr>
-                {% endfor %}
+            </thead>
+            <tbody>
+            </tbody>
             </table>
         </div>
     </div>
@@ -74,5 +56,6 @@
 
 <script src="{{ url_for('static', filename='jquery/jquery-3.4.1.min.js') }}"></script>
 <script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>
