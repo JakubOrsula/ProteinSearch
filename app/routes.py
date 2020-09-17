@@ -39,7 +39,7 @@ def upload():
         return jsonify({'status': 'failed', 'message': 'Cannot process file'}), 400
 
     if not ids:
-        return jsonify({'status': 'failed', 'message': 'No chains detected'}), 400
+        return jsonify({'status': 'failed', 'message': 'No protein chains detected'}), 400
 
     return jsonify({'status': 'ok', 'comp_id': comp_id, 'chains': ids}), 201
 

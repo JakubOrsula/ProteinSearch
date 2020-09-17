@@ -27,7 +27,6 @@ function init_results() {
         $.ajax({
             url: `/get_results?${object_params.toString()}`,
             success: function (data) {
-                $('#done').html(`Calculated ${data['completed']} out of ${data['total']}`);
                 let idx = 0;
                 $('#table > tbody').empty();
                 for (const res of data['results']) {
@@ -49,9 +48,21 @@ function init_results() {
                     $('#table > tbody:last-child').append(line);
                     idx++;
                 }
+                let status = '';
                 if (data['status'] === 'COMPUTING') {
                     setTimeout(worker, 3000);
+                    status = `<div class="spinner-border spinner-border-sm" role="status">
+                                <span class="sr-only">Computing...</span>
+                                </div>
+                                Refinement running (done ${data['completed']} out of ${data['total']})`;
+                } else {
+                    if (data['results'].length < 30) {
+                        status = `Displaying ${data['results'].length} most similar structures`
+                    } else {
+                        status = `Displaying 30 most similar structures out of ${data['results'].length}`
+                    }
                 }
+                $('#status').html(status);
             }
         });
     })();

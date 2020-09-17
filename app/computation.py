@@ -7,7 +7,7 @@ from flask import Request
 from typing import List, Tuple, Dict
 
 import python_distance
-from .config import ARCHIVE_DIR, COMPUTATIONS_DIR
+from .config import ARCHIVE_DIR, COMPUTATIONS_DIR, QSCORE_THRESHOLD
 
 
 def process_input(req: Request) -> Tuple[str, List[str]]:
@@ -37,13 +37,12 @@ def get_candidates(query: str) -> List[str]:
 
 def compute_distance(comp_id: str, chain: str, candidate: str) -> None:
     python_distance.init_library(ARCHIVE_DIR, '/dev/null', True, 0, 10)
-    res = python_distance.get_results(f'_{comp_id}:{chain}', candidate, ARCHIVE_DIR)
+    res = python_distance.get_results(f'_{comp_id}:{chain}', candidate, ARCHIVE_DIR, QSCORE_THRESHOLD)
     return res
 
 
-def start_computation(comp_id: str, chain: str, pool: multiprocessing.Pool) ->\
+def start_computation(comp_id: str, chain: str, pool: multiprocessing.Pool) -> \
         Dict[str, multiprocessing.pool.AsyncResult]:
-
     candidates = get_candidates(f'_{comp_id}:{chain}')
     results = {}
     for candidate in candidates:
