@@ -56,10 +56,10 @@ function init_results() {
                                 </div>
                                 Refinement running (done ${data['completed']} out of ${data['total']})`;
                 } else {
-                    if (data['results'].length < 30) {
+                    if (data['results'].length <= 30) {
                         status = `Displaying ${data['results'].length} most similar structures`
                     } else {
-                        status = `Displaying 30 most similar structures out of ${data['results'].length}`
+                        status = `Displaying the first 30 most similar structures (out of ${data['similar']})`
                     }
                 }
                 $('#status').html(status);

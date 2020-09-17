@@ -102,12 +102,14 @@ def get_results():
 
     total = len(computation_results[comp_id])
     completed = 0
+    similar = 0
     ret = []
     for chain_id, result in computation_results[comp_id].items():
         if result.ready():
             completed += 1
             status, qscore, rmsd, seq_id, aligned = result.get()
             if status == python_distance.Status.OK and qscore > QSCORE_THRESHOLD:
+                similar += 1
                 ret.append({'object': chain_id,
                             'qscore': round(qscore, 3),
                             'rmsd': round(rmsd, 3),
@@ -119,5 +121,6 @@ def get_results():
 
     return jsonify({'results': final,
                     'status': status,
+                    'similar': similar,
                     'total': total,
                     'completed': completed}), 200
