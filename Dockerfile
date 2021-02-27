@@ -1,5 +1,5 @@
 FROM fedora:32
-RUN dnf install -y gcc g++ git cmake make java-11-openjdk-devel zlib-devel tbb-devel telnet python3-flask httpd python3-mod_wsgi pybind11-devel python3-devel
+RUN dnf install -y gcc g++ git cmake make java-11-openjdk-devel zlib-devel tbb-devel telnet python3-flask httpd python3-mod_wsgi pybind11-devel python3-devel python3-requests
 
 WORKDIR /
 
