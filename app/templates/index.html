@@ -18,7 +18,7 @@
     </div>
     <hr>
 
-    {% set uploaded = uploaded | default(False, True) %}
+    {% set selected = selected | default(False, True) %}
 
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -35,7 +35,25 @@
     <form method="post" enctype="multipart/form-data" action="{{ url_for('index') }}">
         <div class="row">
             <div class="col">
-                <fieldset id="file-fs" {% if uploaded %} disabled="disabled" {% endif %}>
+                <fieldset id="input-type">
+                    <div class="form-check-inline">
+                        <input class="form-check-input" type="radio" name="input-type" id="type-file" value="file" checked>
+                        <label class="form-check-label" for="type-file">
+                            File input
+                        </label>
+                    </div>
+                    <div class="form-check-inline">
+                        <input class="form-check-input" type="radio" name="input-type" id="type-id" value="pdbid">
+                        <label class="form-check-label" for="type-id">
+                            PDB ID
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <fieldset id="file-fs" {% if selected %} disabled="disabled" {% endif %}>
                     <label class="form-check-label" for="file">Input file</label>
                     <input class="form-check" type="file" name="file" id="file" accept=".pdb, .cif">
                     <small class="form-text muted">
@@ -43,10 +61,18 @@
                     </small>
                 </fieldset>
             </div>
+            <div class="col-6">
+                <fieldset id="fs-pdbid">
+                    <label class="form-check-inline" for="pdbid">
+                        PDB ID:
+                    </label>
+                    <input class="form-check-inline" type="text" id="pdbid" name="pdbid">
+                </fieldset>
+            </div>
         </div>
         <div class="row">
             <div class="col">
-                <input class="btn btn-primary" type="submit" id="upload" value="Upload" disabled>
+                <input class="btn btn-primary" type="submit" id="select" value="Select" disabled>
             </div>
         </div>
     </form>
@@ -54,11 +80,13 @@
     <hr class="mb-2">
     <form method="post" enctype="multipart/form-data" action="{{ url_for('results', comp_id=comp_id) }}">
         <input type="hidden" name="comp-id" id="comp-id" value="{{ comp_id }}">
+        <input type="hidden" name="input-name" id="input-name" value="{{ input_name }}">
+        <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
         <div class="row">
             <div class="col">
-                <fieldset id="chain-fs"  {% if not uploaded %} disabled="disabled" {% endif %}>
-                    {% if uploaded %}
-                        <label class="form-check-label" for="chain">Chains for {{ filename }}</label>
+                <fieldset id="chain-fs"  {% if not selected %} disabled="disabled" {% endif %}>
+                    {% if selected %}
+                        <label class="form-check-label" for="chain">Chains for {{ input_name }}</label>
                     {% else %}
                         <label class="form-check-label" for="chain">Chains</label>
                     {% endif %}
@@ -72,12 +100,17 @@
                     <small class="form-text muted">
                         Enter the chain specifier.
                     </small>
+                    <label class="form-check-inline" for="qscore-range">Minimum Q-score: </label>
+                    <input class="form-check-inline" type="number" name="qscore-range" value="0.5" min="0.3" max="1.0" step="0.1" id="qscore-range">
+
+                    <label class="form-check-inline" for="num-results">Number of results: </label>
+                    <input class="form-check-inline" type="number" name="num-results" value="30" min="10" max="100" step="10" id="num-results">
                 </fieldset>
             </div>
         </div>
         <div class="row">
             <div class="col">
-                <input class="btn btn-success" type="submit" id="run" value="Run" {% if not uploaded %}
+                <input class="btn btn-success" type="submit" id="run" value="Run" {% if not selected %}
                        disabled {% endif %}>
                 <a class="btn btn-secondary" href="{{ url_for('index') }}">Reset</a>
             </div>
