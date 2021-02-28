@@ -67,7 +67,7 @@ def get_candidates(query: str) -> List[str]:
 def get_candidates_messif(query: str, radius: float, num_results: int) -> List[str]:
     url = f'http://147.251.21.141:20001/search?queryid={query}&range={radius}&k={num_results}'
     req = requests.get(url)
-    response = json.loads(req.content.decode('utf-8'))[0]
+    response = json.loads(req.content.decode('utf-8'))
     if response['status']['code'] != 200:
         raise RuntimeError('MESSIF returned something wrong')
 
