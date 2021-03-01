@@ -36,7 +36,8 @@ def prepare_indexed_chain(req: Request):
         filename = os.path.join(ARCHIVE_DIR, prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
 
-    return os.path.basename(tmpdir), chains
+    comp_id = os.path.basename(tmpdir)[len('query'):]
+    return comp_id, chains
 
 
 def process_input(req: Request) -> Tuple[str, List[str]]:
@@ -44,24 +45,8 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
     path = os.path.join(tmpdir, 'query')
     req.files['file'].save(path)
 
-    return os.path.basename(tmpdir), python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir)
-
-
-def get_candidates(query: str) -> List[str]:
-    env = dict(os.environ)
-    env['LD_LIBRARY_PATH'] = '/usr/local/lib'
-    args = ['java', '-cp', '/usr/local/lib/get_candidates.jar', 'GetCandidates', ARCHIVE_DIR]
-
-    p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    if p.returncode:
-        print('Calculation failed: ' + p.stderr.decode('utf-8'))
-        raise RuntimeError()
-
-    candidates = []
-    for line in p.stdout.decode('utf-8').splitlines():
-        candidates.append(line.strip())
-
-    return candidates
+    comp_id = os.path.basename(tmpdir)[len('query'):]
+    return comp_id, python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir)
 
 
 def get_candidates_messif(query: str, radius: float, num_results: int) -> List[str]:
@@ -102,7 +87,6 @@ def start_computation(comp_id: str, chain: str, pdb_id: Optional[str], radius: f
         query = f'{pdb_id}:{chain}'
 
     candidates = get_candidates_messif(query, radius, num_results)
-    print(candidates)
     results = {}
     for candidate in candidates:
         results[candidate] = pool.apply_async(compute_distance, args=(comp_id, chain, candidate))
