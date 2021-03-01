@@ -29,6 +29,7 @@ def prepare_indexed_chain(req: Request):
         raise RuntimeError()
 
     tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
+    os.chmod(tmpdir, 0o755)
 
     prefix = pdb_id[:2].lower()
     shutil.copy(os.path.join(RAW_PDB_DIR, f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
@@ -42,6 +43,7 @@ def prepare_indexed_chain(req: Request):
 
 def process_input(req: Request) -> Tuple[str, List[str]]:
     tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
+    os.chmod(tmpdir, 0o755)
     path = os.path.join(tmpdir, 'query')
     req.files['file'].save(path)
 
