@@ -77,11 +77,6 @@ def start_computation(comp_id: str, chain: str, pdb_id: Optional[str], radius: f
                       pool: multiprocessing.Pool) -> Dict[str, multiprocessing.pool.AsyncResult]:
 
     if pdb_id is None:
-        conn = sqlite3.connect(db_file)
-        c = conn.cursor()
-        c.execute(f'INSERT INTO uploaded_ids VALUES (NULL, "_{comp_id}:{chain}");')
-        conn.commit()
-        conn.close()
         query = f'_{comp_id}:{chain}'
     else:
         query = f'{pdb_id}:{chain}'
