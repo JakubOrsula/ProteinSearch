@@ -99,7 +99,7 @@ def get_details():
     obj: str = request.args.get('object')
 
     python_distance.prepare_aligned_PDBs(f'_{comp_id}:{chain}', obj, RAW_PDB_DIR,
-                                         os.path.join(COMPUTATIONS_DIR, comp_id))
+                                         os.path.join(COMPUTATIONS_DIR, f'query{comp_id}'))
 
     return render_template('details.html', object=obj, query_chain=chain, comp_id=comp_id)
 
@@ -113,7 +113,7 @@ def get_pdb():
         file = 'query.pdb'
     else:
         file = f'{obj}.aligned.pdb'
-    return send_from_directory(os.path.join(COMPUTATIONS_DIR, comp_id), file, cache_timeout=0)
+    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{comp_id}'), file, cache_timeout=0)
 
 
 @application.route('/get_results')
