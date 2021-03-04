@@ -1,27 +1,29 @@
 import os
-import subprocess
 import tempfile
 import multiprocessing.pool
-import sqlite3
 import shutil
 import requests
 import json
+import mariadb
 
 from flask import Request
 from typing import List, Tuple, Dict, Optional
 
 import python_distance
-from .config import ARCHIVE_DIR, COMPUTATIONS_DIR, QSCORE_THRESHOLD, RAW_PDB_DIR
-
-db_file = os.path.join(os.path.dirname(__file__), 'chain_ids.db')
+from .config import *
 
 
 def prepare_indexed_chain(req: Request):
     pdb_id = req.form['pdbid'].upper()
 
-    conn = sqlite3.connect(db_file)
+    conn = mariadb.connect(
+        user=DB_USER,
+        password=DB_PASS,
+        database=DATABASE
+    )
+
     c = conn.cursor()
-    c.execute(f'SELECT chain_id FROM chain_ids WHERE chain_id LIKE "{pdb_id}%"')
+    c.execute(f'SELECT gesamtId FROM proteinChain WHERE gesamtId LIKE "{pdb_id}%"')
     chains = [chain_id[0].split(':')[1] for chain_id in c.fetchall()]
     conn.close()
 
@@ -48,7 +50,9 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
     req.files['file'].save(path)
 
     comp_id = os.path.basename(tmpdir)[len('query'):]
-    return comp_id, python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir)
+    chains = python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir, 'query')
+    chain_ids, sizes = zip(*chains)
+    return comp_id, list(chain_ids)
 
 
 def get_candidates_messif(query: str, radius: float, num_results: int) -> List[str]:
@@ -60,9 +64,14 @@ def get_candidates_messif(query: str, radius: float, num_results: int) -> List[s
 
     messif_ids = ', '.join(record['_id'] for record in response['answer_records'])
 
-    conn = sqlite3.connect(db_file)
+    conn = mariadb.connect(
+        user=DB_USER,
+        password=DB_PASS,
+        database=DATABASE
+    )
+
     c = conn.cursor()
-    c.execute(f'SELECT chain_id FROM chain_ids WHERE messif_id IN ({messif_ids});')
+    c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({messif_ids});')
 
     candidates = [candidate[0] for candidate in c.fetchall()]
     conn.close()
