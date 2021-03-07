@@ -51,15 +51,15 @@ def results():
     radius: float = 1 - float(request.form['qscore-range'])
     num_results: int = int(request.form['num-results'])
     if request.form['uploaded'] == 'True':
-        pdb_id = None
+        query = f'_{comp_id}:{chain}'
         input_type = 'uploaded'
     else:
-        pdb_id = name
+        query = f'{name}:{chain}'
         input_type = 'database'
 
     try:
-        computation_results[comp_id] = start_computation(comp_id, chain, pdb_id, radius, num_results, pool)
-        computation_results[comp_id]['chain'] = chain
+        computation_results[comp_id] = start_computation(query, radius, num_results, pool)
+        computation_results[comp_id]['query'] = query
         computation_results[comp_id]['result_stats'] = {}
     except RuntimeError:
         flash('Calculation failed')
@@ -117,10 +117,10 @@ def get_results():
         res_data['chain_ids'] = []
         res_data['phase'] = 'none'
 
+    query = comp_data['query']
     for chain_id in res_data['chain_ids']:
         if chain_id not in comp_data['result_stats']:
-            comp_data['result_stats'][chain_id] = pool.apply_async(get_stats,
-                                                                   args=(comp_id, comp_data['chain'], chain_id))
+            comp_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id))
 
     statistics = []
     completed = 0

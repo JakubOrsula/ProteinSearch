@@ -7,7 +7,7 @@ import json
 import mariadb
 
 from flask import Request
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict
 
 import python_distance
 from .config import *
@@ -56,7 +56,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     elif req_type == 'sketches_large':
         url = f'http://147.251.21.141:20003/searchsketches?queryid={query}&range={radius}&k={num_results}'
     else:
-        url = f'http://147.251.21.141:20001/searchsketches?queryid={query}&range={radius}&k={num_results}'
+        url = f'http://147.251.21.141:20001/search?queryid={query}&range={radius}&k={num_results}'
 
     req = requests.get(url)
     if req.status_code != 200:
@@ -69,7 +69,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     messif_ids = ', '.join(record['_id'] for record in response['answer_records'])
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({messif_ids});')
+    c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({messif_ids})')
     chain_ids = [candidate[0] for candidate in c.fetchall()]
     c.close()
     conn.close()
@@ -77,19 +77,19 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     return chain_ids
 
 
-def get_stats(comp_id: str, chain: str, other: str) -> Tuple[float, float, float, int]:
+def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
-    query = f'SELECT qscore, rmsd, seqIdentity, alignedResidues FROM queriesNearestNeighboursStats ' \
-            f'WHERE queryGesamtId = "_{comp_id}:{chain}" AND nnGesamtId = "{other}"'
-    c.execute(query)
+    select_query = f'SELECT qscore, rmsd, seqIdentity, alignedResidues FROM queriesNearestNeighboursStats ' \
+                   f'WHERE queryGesamtId = "{query}" AND nnGesamtId = "{other}"'
+    c.execute(select_query)
     query_result = c.fetchall()
     if not query_result:
         python_distance.init_library(ARCHIVE_DIR, '/dev/null', True, 0, 10)
-        _, *res = python_distance.get_results(f'_{comp_id}:{chain}', other, ARCHIVE_DIR, QSCORE_THRESHOLD)
+        _, *res = python_distance.get_results(query, other, ARCHIVE_DIR, QSCORE_THRESHOLD)
         insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
-                       f'(NULL, "_{comp_id}:{chain}", "{other}", {res[0]}, {res[1]}, {res[3]}, {res[2]})'
+                       f'(NULL, "{query}", "{other}", {res[0]}, {res[1]}, {res[3]}, {res[2]})'
         c.execute(insert_query)
 
         conn.commit()
@@ -100,13 +100,7 @@ def get_stats(comp_id: str, chain: str, other: str) -> Tuple[float, float, float
     return res
 
 
-def start_computation(comp_id: str, chain: str, pdb_id: Optional[str], radius: float, num_results: int,
-                      pool: multiprocessing.Pool) -> Dict[str, multiprocessing.pool.AsyncResult]:
-    if pdb_id is None:
-        query = f'_{comp_id}:{chain}'
-    else:
-        query = f'{pdb_id}:{chain}'
-
+def start_computation(query, radius: float, num_results: int, pool: multiprocessing.Pool) -> Dict[str, multiprocessing.pool.AsyncResult]:
     results = {
         'sketches_small': pool.apply_async(get_results_messif, args=(query, -1, num_results, 'sketches_small')),
         'sketches_large': pool.apply_async(get_results_messif, args=(query, radius, num_results, 'sketches_large')),

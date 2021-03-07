@@ -81,7 +81,7 @@ function init_results() {
                     status = `<div class="spinner-border spinner-border-sm" role="status">
                                 <span class="sr-only">Computing...</span>
                                 </div>
-                                Running phase: ${data['phase']} (done ${data['completed']} out of ${data['total']})`;
+                                Done phase: ${data['phase']} (done ${data['completed']} out of ${data['total']})`;
                 } else {
                     if (data['statistics'].length <= 30) {
                         status = `Displaying ${data['statistics'].length} most similar structures`
