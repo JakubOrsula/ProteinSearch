@@ -99,8 +99,8 @@ def get_results():
     comp_data = computation_results[comp_id]
 
     sketches_small = comp_data['sketches_small']
-    sketches_large = comp_data['sketches_small']
-    full = comp_data['sketches_small']
+    sketches_large = comp_data['sketches_large']
+    full = comp_data['full']
 
     res_data = {}
 
@@ -125,7 +125,7 @@ def get_results():
     statistics = []
     completed = 0
     for chain_id in res_data['chain_ids']:
-        job = computation_results[comp_id]['result_stats'][chain_id]
+        job = comp_data['result_stats'][chain_id]
         if job.ready():
             completed += 1
         qscore, rmsd, seq_id, aligned = job.get()
