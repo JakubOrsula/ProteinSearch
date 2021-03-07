@@ -54,8 +54,9 @@ function init_results() {
             url: `/get_results?${object_params.toString()}`,
             success: function (data) {
                 let idx = 0;
+                console.log(data)
                 $('#table > tbody').empty();
-                for (const res of data['results']) {
+                for (const res of data['statistics']) {
                     let pdbid = res['object'].split(':')[0].toLowerCase();
                     let details_params = new URLSearchParams();
                     details_params.set('comp_id', comp_id);
@@ -76,14 +77,14 @@ function init_results() {
                 }
                 let status = '';
                 if (data['status'] === 'COMPUTING') {
-                    setTimeout(worker, 3000);
+                    setTimeout(worker, 500);
                     status = `<div class="spinner-border spinner-border-sm" role="status">
                                 <span class="sr-only">Computing...</span>
                                 </div>
-                                Refinement running (done ${data['completed']} out of ${data['total']})`;
+                                Running phase: ${data['phase']} (done ${data['completed']} out of ${data['total']})`;
                 } else {
-                    if (data['results'].length <= 30) {
-                        status = `Displaying ${data['results'].length} most similar structures`
+                    if (data['statistics'].length <= 30) {
+                        status = `Displaying ${data['statistics'].length} most similar structures`
                     } else {
                         status = `Displaying the first 30 most similar structures (out of ${data['similar']})`
                     }

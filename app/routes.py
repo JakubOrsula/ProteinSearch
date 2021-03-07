@@ -4,8 +4,8 @@ import multiprocessing
 import python_distance
 
 from . import application
-from .config import COMPUTATIONS_DIR, RAW_PDB_DIR, QSCORE_THRESHOLD
-from .computation import process_input, start_computation, prepare_indexed_chain
+from .config import *
+from .computation import process_input, start_computation, prepare_indexed_chain, get_stats
 
 pool = multiprocessing.Pool()
 
@@ -43,32 +43,6 @@ def index():
                                input_name=request.form['pdbid'].upper(), uploaded=False)
 
 
-# @application.route('/upload', methods=['POST'])
-# def upload():
-#     try:
-#         comp_id, ids = process_input(request)
-#     except RuntimeError:
-#         return jsonify({'status': 'failed', 'message': 'Cannot process file'}), 400
-#
-#     if not ids:
-#         return jsonify({'status': 'failed', 'message': 'No protein chains detected'}), 400
-#
-#     return jsonify({'status': 'ok', 'comp_id': comp_id, 'chains': ids}), 201
-#
-#
-# @application.route('/submit_calculation', methods=['POST'])
-# def submit_calculation():
-#     comp_id: str = request.form['comp-id']
-#     chain: str = request.form['chain']
-#
-#     try:
-#         computation_results[comp_id] = start_computation(comp_id, chain, pool)
-#     except RuntimeError:
-#         return jsonify({'status': 'failed', 'message': 'Calculation start unsuccessful'}), 400
-#
-#     return jsonify({'status': 'STARTED'}), 200
-
-
 @application.route('/results', methods=['POST'])
 def results():
     comp_id: str = request.form['comp-id']
@@ -85,6 +59,8 @@ def results():
 
     try:
         computation_results[comp_id] = start_computation(comp_id, chain, pdb_id, radius, num_results, pool)
+        computation_results[comp_id]['chain'] = chain
+        computation_results[comp_id]['result_stats'] = {}
     except RuntimeError:
         flash('Calculation failed')
         return render_template('index.html')
@@ -120,27 +96,52 @@ def get_pdb():
 def get_results():
     comp_id: str = request.args.get('comp_id')
 
-    total = len(computation_results[comp_id])
+    comp_data = computation_results[comp_id]
+
+    sketches_small = comp_data['sketches_small']
+    sketches_large = comp_data['sketches_small']
+    full = comp_data['sketches_small']
+
+    res_data = {}
+
+    if full.ready():
+        res_data['chain_ids'] = full.get()
+        res_data['phase'] = 'full'
+    elif sketches_large.ready():
+        res_data['chain_ids'] = sketches_large.get()
+        res_data['phase'] = 'sketches_large'
+    elif sketches_small.ready():
+        res_data['chain_ids'] = sketches_small.get()
+        res_data['phase'] = 'sketches_small'
+    else:
+        res_data['chain_ids'] = []
+        res_data['phase'] = 'none'
+
+    for chain_id in res_data['chain_ids']:
+        if chain_id not in comp_data['result_stats']:
+            comp_data['result_stats'][chain_id] = pool.apply_async(get_stats,
+                                                                   args=(comp_id, comp_data['chain'], chain_id))
+
+    statistics = []
     completed = 0
-    similar = 0
-    ret = []
-    for chain_id, result in computation_results[comp_id].items():
-        if result.ready():
+    for chain_id in res_data['chain_ids']:
+        job = computation_results[comp_id]['result_stats'][chain_id]
+        if job.ready():
             completed += 1
-            status, qscore, rmsd, seq_id, aligned = result.get()
-            if status == python_distance.Status.OK and qscore > QSCORE_THRESHOLD:
-                similar += 1
-                ret.append({'object': chain_id,
-                            'qscore': round(qscore, 3),
-                            'rmsd': round(rmsd, 3),
-                            'seq_id': round(seq_id, 3),
-                            'aligned': aligned})
+        qscore, rmsd, seq_id, aligned = job.get()
+        statistics.append({'object': chain_id,
+                           'qscore': round(qscore, 3),
+                           'rmsd': round(rmsd, 3),
+                           'seq_id': round(seq_id, 3),
+                           'aligned': aligned})
 
-    final = sorted(ret, key=lambda x: x['qscore'], reverse=True)
-    status = 'FINISHED' if completed == total else 'COMPUTING'
+    statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
+    res_data['statistics'] = statistics
+    res_data['completed'] = completed
+    res_data['total'] = len(res_data['chain_ids'])
+    if res_data['phase'] == 'full' and completed == len(res_data['chain_ids']):
+        res_data['status'] = 'FINISHED'
+    else:
+        res_data['status'] = 'COMPUTING'
 
-    return jsonify({'results': final,
-                    'status': status,
-                    'similar': similar,
-                    'total': total,
-                    'completed': completed}), 200
+    return jsonify(res_data), 200
