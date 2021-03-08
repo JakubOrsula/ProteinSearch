@@ -128,12 +128,12 @@ def get_results():
         job = comp_data['result_stats'][chain_id]
         if job.ready():
             completed += 1
-        qscore, rmsd, seq_id, aligned = job.get()
-        statistics.append({'object': chain_id,
-                           'qscore': round(qscore, 3),
-                           'rmsd': round(rmsd, 3),
-                           'seq_id': round(seq_id, 3),
-                           'aligned': aligned})
+            qscore, rmsd, seq_id, aligned = job.get()
+            statistics.append({'object': chain_id,
+                               'qscore': round(qscore, 3),
+                               'rmsd': round(rmsd, 3),
+                               'seq_id': round(seq_id, 3),
+                               'aligned': aligned})
 
     statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
     res_data['statistics'] = statistics
