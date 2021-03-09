@@ -5,6 +5,7 @@ import shutil
 import requests
 import json
 import mariadb
+import time
 
 from flask import Request
 from typing import List, Tuple, Dict
@@ -87,9 +88,12 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
     query_result = c.fetchall()
     if not query_result:
         python_distance.init_library(ARCHIVE_DIR, '/dev/null', True, 0, 10)
+        begin = time.time()
         _, *res = python_distance.get_results(query, other, ARCHIVE_DIR, QSCORE_THRESHOLD)
+        end = time.time()
+        elapsed = int((end - begin) * 1000)
         insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
-                       f'(NULL, "{query}", "{other}", {res[0]}, {res[1]}, {res[3]}, {res[2]})'
+                       f'({elapsed}, NULL, "{query}", "{other}", {res[0]}, {res[1]}, {res[3]}, {res[2]})'
         c.execute(insert_query)
 
         conn.commit()
