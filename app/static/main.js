@@ -99,13 +99,13 @@ function init_results() {
                 if (data.hasOwnProperty('sketches_large_statistics')) {
                     const small = data['sketches_large_statistics'];
                     stats += `<b>Sketches large search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
-                              + search on sketches: ${small['search_dist_time']} ms = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms<br />`;
+                              + search on sketches: ${small['search_dist_time']} ms = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms </b><br />`;
                 }
                 if (data.hasOwnProperty('full_statistics')) {
                     const small = data['full_statistics'];
                     stats += `<b>PPP-codes & sketches search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
                               + index search (${small['search_dist_count']} distance computations): ${small['search_dist_time']} ms
-                              = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms <br />`;
+                              = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms </b><br />`;
                 }
 
                 $('#status').html(status);
