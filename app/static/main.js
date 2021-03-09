@@ -27,12 +27,11 @@ function init_index() {
         }
     });
 
-    $pdbid.on('input', function() {
+    $pdbid.on('input', function () {
         let val = $pdbid.val();
         if (val.length === 4) {
             $select.prop('disabled', false);
-        }
-        else {
+        } else {
             $select.prop('disabled', true);
         }
     })
@@ -75,21 +74,42 @@ function init_results() {
                     $('#table > tbody:last-child').append(line);
                     idx++;
                 }
-                let status = '';
+                let status = 'Status: ';
+                let stats = '';
                 if (data['status'] === 'COMPUTING') {
                     setTimeout(worker, 500);
-                    status = `<div class="spinner-border spinner-border-sm" role="status">
+                    status += `<div class="spinner-border spinner-border-sm" role="status">
                                 <span class="sr-only">Computing...</span>
                                 </div>
                                 Done phase: ${data['phase']} (done ${data['completed']} out of ${data['total']})`;
                 } else {
+                    status += 'Done. ';
                     if (data['statistics'].length <= 30) {
-                        status = `Displaying ${data['statistics'].length} most similar structures`
+                        status += `Displaying ${data['statistics'].length} most similar structures`
                     } else {
                         status = `Displaying the first 30 most similar structures (out of ${data['similar']})`
                     }
                 }
+
+                if (data.hasOwnProperty('sketches_small_statistics')) {
+                    const small = data['sketches_small_statistics'];
+                    stats += `<b>Sketches small search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
+                              + search on sketches: ${small['search_dist_time']} ms = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms</b><br />`;
+                }
+                if (data.hasOwnProperty('sketches_large_statistics')) {
+                    const small = data['sketches_large_statistics'];
+                    stats += `<b>Sketches large search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
+                              + search on sketches: ${small['search_dist_time']} ms = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms<br />`;
+                }
+                if (data.hasOwnProperty('full_statistics')) {
+                    const small = data['full_statistics'];
+                    stats += `<b>PPP-codes & sketches search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
+                              + index search (${small['search_dist_count']} distance computations): ${small['search_dist_time']} ms
+                              = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms <br />`;
+                }
+
                 $('#status').html(status);
+                $('#stats').html(stats);
             }
         });
     })();

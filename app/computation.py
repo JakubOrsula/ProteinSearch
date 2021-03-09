@@ -51,7 +51,7 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
     return comp_id, list(chain_ids)
 
 
-def get_results_messif(query: str, radius: float, num_results: int, req_type: str) -> List[str]:
+def get_results_messif(query: str, radius: float, num_results: int, req_type: str) -> Tuple[List[str], Dict[str, int]]:
     if req_type == 'sketches_small':
         url = f'http://147.251.21.141:20009/searchsketches?queryid={query}&k={num_results}'
     elif req_type == 'sketches_large':
@@ -68,6 +68,14 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
         raise RuntimeError('MESSIF returned something wrong')
 
     messif_ids = ', '.join(record['_id'] for record in response['answer_records'])
+
+    statistics = {
+        'pivot_dist_time': response['query_record']['pivotDistTimes'],
+        'pivot_dist_count': response['query_record']['pivotDistCount'],
+        'search_dist_time': response['statistics']['OperationTime'],
+        'search_dist_count': response['statistics']['DistanceComputations']
+    }
+
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({messif_ids})')
@@ -75,7 +83,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     c.close()
     conn.close()
 
-    return chain_ids
+    return chain_ids, statistics
 
 
 def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:

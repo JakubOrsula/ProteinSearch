@@ -102,20 +102,20 @@ def get_results():
     sketches_large = comp_data['sketches_large']
     full = comp_data['full']
 
-    res_data = {}
+    res_data = {'chain_ids': [], 'phase': 'none'}
 
-    if full.ready():
-        res_data['chain_ids'] = full.get()
-        res_data['phase'] = 'full'
-    elif sketches_large.ready():
-        res_data['chain_ids'] = sketches_large.get()
-        res_data['phase'] = 'sketches_large'
-    elif sketches_small.ready():
-        res_data['chain_ids'] = sketches_small.get()
+    if sketches_small.ready():
+        res_data['chain_ids'], stats = sketches_small.get()
         res_data['phase'] = 'sketches_small'
-    else:
-        res_data['chain_ids'] = []
-        res_data['phase'] = 'none'
+        res_data['sketches_small_statistics'] = stats
+    if sketches_large.ready():
+        res_data['chain_ids'], stats = sketches_large.get()
+        res_data['phase'] = 'sketches_large'
+        res_data['sketches_large_statistics'] = stats
+    if full.ready():
+        res_data['chain_ids'], stats = full.get()
+        res_data['phase'] = 'full'
+        res_data['full_statistics'] = stats
 
     query = comp_data['query']
     for chain_id in res_data['chain_ids']:
