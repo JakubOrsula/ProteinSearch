@@ -93,19 +93,19 @@ function init_results() {
 
                 if (data.hasOwnProperty('sketches_small_statistics')) {
                     const small = data['sketches_small_statistics'];
-                    stats += `<b>Sketches small search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
-                              + search on sketches: ${small['search_dist_time']} ms = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms</b><br />`;
+                    stats += `<b>Sketches small:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
+                              + search on sketches: ${small['search_dist_time']} ms = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
                 }
                 if (data.hasOwnProperty('sketches_large_statistics')) {
                     const small = data['sketches_large_statistics'];
-                    stats += `<b>Sketches large search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
-                              + search on sketches: ${small['search_dist_time']} ms = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms </b><br />`;
+                    stats += `<b>Sketches large:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
+                              + search on sketches: ${small['search_dist_time']} ms = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
                 }
                 if (data.hasOwnProperty('full_statistics')) {
                     const small = data['full_statistics'];
-                    stats += `<b>PPP-codes & sketches search:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
+                    stats += `<b>PPP-codes & sketches:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
                               + index search (${small['search_dist_count']} distance computations): ${small['search_dist_time']} ms
-                              = <b>${small['pivot_dist_time'] + small['search_dist_time']} ms </b><br />`;
+                              = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
                 }
 
                 $('#status').html(status);
