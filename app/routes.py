@@ -137,7 +137,7 @@ def get_results():
         else:
             statistics.append({
                 'object': chain_id,
-                'qscore': 2,
+                'qscore': -1,
                 'rmsd': None,
                 'seq_id': None,
                 'aligned': None,

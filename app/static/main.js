@@ -62,7 +62,7 @@ function init_results() {
                     details_params.set('object', res['object']);
                     details_params.set('chain', $('#chain').text());
                     let line = '';
-                    if (res['qscore'] !== 2) {
+                    if (res['qscore'] !== -1) {
                         line = `<tr>
                                 <td>${idx + 1}</td>
                                 <td>${res['object']}</td>
