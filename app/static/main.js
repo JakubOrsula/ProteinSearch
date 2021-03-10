@@ -61,7 +61,9 @@ function init_results() {
                     details_params.set('comp_id', comp_id);
                     details_params.set('object', res['object']);
                     details_params.set('chain', $('#chain').text());
-                    let line = `<tr>
+                    let line = '';
+                    if (res['qscore'] !== 2) {
+                        line = `<tr>
                                 <td>${idx + 1}</td>
                                 <td>${res['object']}</td>
                                 <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank"> ${pdbid}</a></td>
@@ -71,6 +73,16 @@ function init_results() {
                                 <td>${res['seq_id']}</td>
                                 <td><a href="/details?${details_params.toString()}" target="_blank">Show alignment</a></td>
                                 </tr>`
+                    } else {
+                        line = `<tr>
+                                <td>${idx + 1}</td>
+                                <td>${res['object']}</td>
+                                <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank"> ${pdbid}</a></td>
+                                <td colspan="4"><div class="spinner-border spinner-border-sm" role="status"><span class="sr-only">Computing statistics...</span></td>
+                                <td><a href="/details?${details_params.toString()}" target="_blank">Show alignment</a></td>
+                                </tr>`
+                    }
+
                     $('#table > tbody:last-child').append(line);
                     idx++;
                 }
@@ -97,15 +109,15 @@ function init_results() {
                               + search on sketches: ${small['search_dist_time']} ms = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
                 }
                 if (data.hasOwnProperty('sketches_large_statistics')) {
-                    const small = data['sketches_large_statistics'];
-                    stats += `<b>Sketches large:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
-                              + search on sketches: ${small['search_dist_time']} ms = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
+                    const large = data['sketches_large_statistics'];
+                    stats += `<b>Sketches large:</b> query-to-pivot (${large['pivot_dist_count']} distance computations): ${large['pivot_dist_time']} ms
+                              + search on sketches: ${large['search_dist_time']} ms = <b>${(large['pivot_dist_time'] + large['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
                 }
                 if (data.hasOwnProperty('full_statistics')) {
-                    const small = data['full_statistics'];
-                    stats += `<b>PPP-codes & sketches:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
-                              + index search (${small['search_dist_count']} distance computations): ${small['search_dist_time']} ms
-                              = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
+                    const full = data['full_statistics'];
+                    stats += `<b>PPP-codes & sketches:</b> query-to-pivot (${full['pivot_dist_count']} distance computations): ${full['pivot_dist_time']} ms
+                              + index search (${full['search_dist_count']} distance computations): ${(full['search_dist_time']) - full['pivot_dist_time']} ms
+                              = <b>${full['search_dist_time'].toLocaleString('cs-CZ')} ms </b><br />`;
                 }
 
                 $('#status').html(status);

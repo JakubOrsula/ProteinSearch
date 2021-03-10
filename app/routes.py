@@ -134,6 +134,14 @@ def get_results():
                                'rmsd': round(rmsd, 3),
                                'seq_id': round(seq_id, 3),
                                'aligned': aligned})
+        else:
+            statistics.append({
+                'object': chain_id,
+                'qscore': 2,
+                'rmsd': None,
+                'seq_id': None,
+                'aligned': None,
+            })
 
     statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
     res_data['statistics'] = statistics
