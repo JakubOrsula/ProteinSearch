@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="ProteinSearch">
-    <title>ProteinSearch - Results</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
+    <title>Protein Chain Similarity Search - Results</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css">
 </head>
 
 <body>
@@ -16,40 +18,35 @@
 <div class="container p-3">
     <div class="row">
         <div class="col">
-            <h1>ProteinSearch - Results</h1>
-        </div>
-    </div>
-    <hr>
-    <div class="row">
-        <div class="col">
-            Most similar objects to the query chain <span class="font-weight-bold" id="chain">{{ query }}</span> from <span class="font-weight-bold">{{ input_name }}</span>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col" id="status">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col" id="stats">
+            <h1>Protein Chain Similarity Search - Results</h1>
         </div>
     </div>
     <div class="row">
         <div class="col">
-            <table class="table" id="table">
-            <thead>
-            <tr>
-                    <th>No.</th>
-                    <th>ID</th>
-                    <th>Protein info from PDBe</th>
-                    <th>Q-score</th>
-                    <th>RMSD</th>
-                    <th>Aligned res.</th>
-                    <th>Seq. identity</th>
-                    <th>Show</th>
+            <table class="table table-striped table-bordered table-sm" style="width:100%; font-size: 14px" id="messif_stats">
+                <caption class="h5" style="caption-side: top">Search statistics</caption>
+                <thead>
+                <tr>
+                    <th rowspan="2" style="vertical-align:middle">Phase</th>
+                    <th rowspan="2" style="vertical-align:middle">Status</th>
+                    <th colspan="2" style="text-align: center">Query to pivots</th>
+                    <th colspan="2" style="text-align: center">Search</th>
+                    <th rowspan="2" style="vertical-align:middle">Total time (ms)</th>
                 </tr>
-            </thead>
-            <tbody>
-            </tbody>
+                <tr>
+                    <th>Distance computations</th>
+                    <th>Time (ms)</th>
+                    <th>Distance computations</th>
+                    <th>Time (ms)</th>
+                </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-striped table-bordered" style="width:100%; font-size: 14px" id="table">
+                <caption class="h5" style="caption-side: top">Most similar chains to {{ input_name }}:{{ query }} </caption>
             </table>
         </div>
     </div>
@@ -61,8 +58,13 @@
 </div>
 
 
-<script src="{{ url_for('static', filename='jquery/jquery-3.4.1.min.js') }}"></script>
-<script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
 <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>

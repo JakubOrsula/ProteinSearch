@@ -40,6 +40,18 @@ function init_index() {
 }
 
 
+function fetch_name(name) {
+    $.ajax({
+        url: `https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/${name}`,
+        success: function (data) {
+            const title = data[name][0]['title'];
+            localStorage[name] = title;
+            $(`.name_${name}`).val(title);
+        }
+    })
+}
+
+
 function init_results() {
     const parameters_string = window.location.search;
     const parameters = new URLSearchParams(parameters_string);
@@ -48,80 +60,139 @@ function init_results() {
     const comp_id = parameters.get('comp_id');
     object_params.set('comp_id', comp_id);
 
+    let statusTable = $('#messif_stats').DataTable({
+        'ordering': false,
+        'paging': false,
+        'searching': false,
+        'autoWidth': true,
+        'info': false,
+    });
+
+    let resultsTable = $('#table').DataTable({
+        columns: [
+            {'title': 'No.'},
+            {'title': 'Chain'},
+            {'title': 'Name', 'width': '33%'},
+            {'title': 'Q-score'},
+            {'title': 'RMSD'},
+            {'title': 'Aligned res.'},
+            {'title': 'Seq. identity'},
+            {'title': 'Alignment', 'searchable': false, 'orderable': false},
+        ],
+        searching: false,
+        dom: 't<"bottom"i>',
+        paging: false,
+        scrollCollapse: true,
+        scrollY: '50vh'
+    });
+
     (function worker() {
         $.ajax({
             url: `/get_results?${object_params.toString()}`,
             success: function (data) {
                 let idx = 0;
-                console.log(data)
+                statusTable.clear().draw();
+                resultsTable.clear().draw();
                 $('#table > tbody').empty();
                 for (const res of data['statistics']) {
-                    let pdbid = res['object'].split(':')[0].toLowerCase();
+                    let [pdbid, chain] = res['object'].split(':');
+                    pdbid = pdbid.toLowerCase();
                     let details_params = new URLSearchParams();
                     details_params.set('comp_id', comp_id);
                     details_params.set('object', res['object']);
-                    details_params.set('chain', $('#chain').text());
-                    let line = '';
+                    details_params.set('chain', chain);
+                    let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
+                    let qscore = '?';
+                    let rmsd = '?';
+                    let aligned = '?';
+                    let seq_id = '?';
+
                     if (res['qscore'] !== -1) {
-                        line = `<tr>
-                                <td>${idx + 1}</td>
-                                <td>${res['object']}</td>
-                                <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank"> ${pdbid}</a></td>
-                                <td>${res['qscore']}</td>
-                                <td>${res['rmsd']}</td>
-                                <td>${res['aligned']}</td>
-                                <td>${res['seq_id']}</td>
-                                <td><a href="/details?${details_params.toString()}" target="_blank">Show alignment</a></td>
-                                </tr>`
-                    } else {
-                        line = `<tr>
-                                <td>${idx + 1}</td>
-                                <td>${res['object']}</td>
-                                <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank"> ${pdbid}</a></td>
-                                <td colspan="4"><div class="spinner-border spinner-border-sm" role="status"><span class="sr-only">Computing statistics...</span></td>
-                                <td><a href="/details?${details_params.toString()}" target="_blank">Show alignment</a></td>
-                                </tr>`
+                        qscore = res['qscore'];
+                        rmsd = res['rmsd'];
+                        aligned = res['aligned'];
+                        seq_id = res['seq_id'];
                     }
 
-                    $('#table > tbody:last-child').append(line);
+                    resultsTable.row.add([idx + 1,
+                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank">${res['object']}</a>`,
+                        `<div class="name_${pdbid}">${name}</div>`,
+                        qscore, rmsd, aligned, seq_id,
+                        `<a href="/details?${details_params.toString()}" target="_blank">Show</a>`]).draw();
+
+                    if (localStorage.getItem(pdbid) === null) {
+                        fetch_name(pdbid);
+                    }
                     idx++;
                 }
-                let status = 'Status: ';
-                let stats = '';
-                if (data['status'] === 'COMPUTING') {
-                    setTimeout(worker, 500);
-                    status += `<div class="spinner-border spinner-border-sm" role="status">
-                                <span class="sr-only">Computing...</span>
-                                </div>
-                                Done phase: ${data['phase']} (done ${data['completed']} out of ${data['total']})`;
-                } else {
-                    status += 'Done. ';
-                    if (data['statistics'].length <= 30) {
-                        status += `Displaying ${data['statistics'].length} most similar structures`
-                    } else {
-                        status = `Displaying the first 30 most similar structures (out of ${data['similar']})`
-                    }
-                }
 
+                resultsTable.columns.adjust().draw();
+
+                let phases_done = 0;
                 if (data.hasOwnProperty('sketches_small_statistics')) {
+                    phases_done++;
                     const small = data['sketches_small_statistics'];
-                    stats += `<b>Sketches small:</b> query-to-pivot (${small['pivot_dist_count']} distance computations): ${small['pivot_dist_time']} ms
-                              + search on sketches: ${small['search_dist_time']} ms = <b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
-                }
-                if (data.hasOwnProperty('sketches_large_statistics')) {
-                    const large = data['sketches_large_statistics'];
-                    stats += `<b>Sketches large:</b> query-to-pivot (${large['pivot_dist_count']} distance computations): ${large['pivot_dist_time']} ms
-                              + search on sketches: ${large['search_dist_time']} ms = <b>${(large['pivot_dist_time'] + large['search_dist_time']).toLocaleString('cs-CZ')} ms </b><br />`;
-                }
-                if (data.hasOwnProperty('full_statistics')) {
-                    const full = data['full_statistics'];
-                    stats += `<b>PPP-codes & sketches:</b> query-to-pivot (${full['pivot_dist_count']} distance computations): ${full['pivot_dist_time']} ms
-                              + index search (${full['search_dist_count']} distance computations): ${(full['search_dist_time']) - full['pivot_dist_time']} ms
-                              = <b>${full['search_dist_time'].toLocaleString('cs-CZ')} ms </b><br />`;
+                    statusTable.row.add([
+                        '<b>Sketches small</b>',
+                        '🗸',
+                        small['pivot_dist_count'],
+                        small['pivot_dist_time'],
+                        small['search_dist_count'],
+                        small['search_dist_time'],
+                        `<b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')}`
+                    ]).draw();
+                } else {
+                    statusTable.row.add([
+                        '<b>Sketches small</b>',
+                        '<div class="spinner-border spinner-border-sm" role="status"></div>',
+                        '', '', '', '', ''
+                    ]).draw();
                 }
 
-                $('#status').html(status);
-                $('#stats').html(stats);
+                if (data.hasOwnProperty('sketches_large_statistics')) {
+                    phases_done++;
+                    const large = data['sketches_large_statistics'];
+                    statusTable.row.add([
+                        '<b>Sketches large</b>',
+                        '🗸',
+                        large['pivot_dist_count'],
+                        large['pivot_dist_time'],
+                        large['search_dist_count'],
+                        large['search_dist_time'],
+                        `<b>${(large['pivot_dist_time'] + large['search_dist_time']).toLocaleString('cs-CZ')}`
+                    ]).draw();
+                } else {
+                    statusTable.row.add([
+                        '<b>Sketches large</b>',
+                        '<div class="spinner-border spinner-border-sm" role="status"></div>',
+                        '', '', '', '', ''
+                    ]).draw();
+                }
+
+                if (data.hasOwnProperty('full_statistics')) {
+                    phases_done++;
+                    const full = data['full_statistics'];
+                    statusTable.row.add([
+                        '<b>PPP codes + sketches</b>',
+                        '🗸',
+                        full['pivot_dist_count'],
+                        full['pivot_dist_time'],
+                        full['search_dist_count'],
+                        full['search_dist_time'] - full['pivot_dist_time'],
+                        `<b>${full['search_dist_time'].toLocaleString('cs-CZ')}</b>`
+                    ]).draw();
+                } else {
+                    statusTable.row.add([
+                        '<b>PPP codes + sketches</b>',
+                        '<div class="spinner-border spinner-border-sm" role="status"></div>',
+                        '', '', '', '', ''
+                    ]).draw();
+                }
+
+                statusTable.columns.adjust().draw();
+                if (phases_done !== 3 || data['status'] !== 'FINISHED') {
+                    setTimeout(worker, 500);
+                }
             }
         });
     })();

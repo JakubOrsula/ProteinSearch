@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="ProteinSearch">
-    <title>ProteinSearch</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
+    <title>Protein Chain Similarity Search</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
@@ -13,7 +13,7 @@
 <div class="container p-3">
     <div class="row">
         <div class="col">
-            <h1>ProteinSearch - Input </h1>
+            <h1>Protein Chain Similarity Search</h1>
         </div>
     </div>
     <hr>
@@ -52,7 +52,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-6">
+            <div class="col-md-6">
                 <fieldset id="file-fs" {% if selected %} disabled="disabled" {% endif %}>
                     <label class="form-check-label" for="file">Input file</label>
                     <input class="form-check" type="file" name="file" id="file" accept=".pdb, .cif">
@@ -61,7 +61,7 @@
                     </small>
                 </fieldset>
             </div>
-            <div class="col-6">
+            <div class="col-md-6">
                 <fieldset id="fs-pdbid">
                     <label class="form-check-inline" for="pdbid">
                         PDB ID:
@@ -72,7 +72,7 @@
         </div>
         <div class="row">
             <div class="col">
-                <input class="btn btn-primary" type="submit" id="select" value="Select" disabled>
+                <input class="btn btn-primary" type="submit" id="select" value="Select" {% if selected %} disabled {% endif %}>
             </div>
         </div>
     </form>
@@ -119,8 +119,8 @@
 </div>
 
 
-<script src="{{ url_for('static', filename='jquery/jquery-3.4.1.min.js') }}"></script>
-<script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 <script src="{{ url_for('static', filename='main.js') }}"></script>
 
 </body>
