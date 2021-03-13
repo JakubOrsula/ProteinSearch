@@ -61,18 +61,27 @@ function init_results() {
     object_params.set('comp_id', comp_id);
 
     let statusTable = $('#messif_stats').DataTable({
-        'ordering': false,
-        'paging': false,
-        'searching': false,
-        'autoWidth': true,
-        'info': false,
+        ordering: false,
+        paging: false,
+        searching: false,
+        info: false,
+        columnDefs : [
+            {
+                targets: [2, 3, 4, 5, 6],
+                className: 'text-right'
+            },
+            {
+                targets: [1],
+                className: 'text-center'
+            }
+        ]
     });
 
     let resultsTable = $('#table').DataTable({
         columns: [
             {'title': 'No.'},
             {'title': 'Chain'},
-            {'title': 'Name', 'width': '33%'},
+            {'title': 'Name'},
             {'title': 'Q-score'},
             {'title': 'RMSD'},
             {'title': 'Aligned res.'},
@@ -80,10 +89,11 @@ function init_results() {
             {'title': 'Alignment', 'searchable': false, 'orderable': false},
         ],
         searching: false,
-        dom: 't<"bottom"i>',
         paging: false,
         scrollCollapse: true,
-        scrollY: '50vh'
+        scrollResize: true,
+        scrollY: 100,
+        info: false,
     });
 
     (function worker() {
