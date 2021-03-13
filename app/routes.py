@@ -1,4 +1,4 @@
-from flask import render_template, request, flash, send_from_directory, jsonify
+from flask import render_template, request, flash, send_from_directory, jsonify, redirect
 import os
 import multiprocessing
 import python_distance
@@ -17,7 +17,6 @@ def index():
     if request.method == 'GET':
         return render_template('index.html')
 
-    print(request.form)
     if 'select_pdb_id' in request.form:
         print('Prepare indexed')
         try:
@@ -29,7 +28,6 @@ def index():
         return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
                                uploaded=False)
     elif 'select_random' in request.form:
-        print('Prepare random')
         pdb_id = get_random_pdb_id()
         try:
             comp_id, ids = prepare_indexed_chain(pdb_id)
@@ -43,7 +41,6 @@ def index():
         return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
                                uploaded=False)
     elif 'upload' in request.form:
-        print('Prepare upload')
         try:
             comp_id, ids = process_input(request)
         except RuntimeError:
@@ -62,8 +59,8 @@ def index():
         return render_template('index.html')
 
 
-@application.route('/results', methods=['POST'])
-def results():
+@application.route('/search', methods=['POST'])
+def search():
     comp_id: str = request.form['comp-id']
     chain: str = request.form['chain']
     name: str = request.form['input-name']
@@ -71,10 +68,8 @@ def results():
     num_results: int = int(request.form['num-results'])
     if request.form['uploaded'] == 'True':
         query = f'_{comp_id}:{chain}'
-        input_type = 'uploaded'
     else:
         query = f'{name}:{chain}'
-        input_type = 'database'
 
     try:
         computation_results[comp_id] = start_computation(query, radius, num_results, pool)
@@ -84,7 +79,16 @@ def results():
         flash('Calculation failed')
         return render_template('index.html')
 
-    return render_template('results.html', query=chain, comp_id=comp_id, input_name=name, input_type=input_type)
+    return redirect(f'/results?comp_id={comp_id}&chain={chain}&name={name}')
+
+
+@application.route('/results')
+def results():
+    comp_id: str = request.args.get('comp-id')
+    chain: str = request.args.get('chain')
+    name: str = request.args.get('name')
+
+    return render_template('results.html', query=chain, comp_id=comp_id, input_name=name)
 
 
 @application.route('/details')
