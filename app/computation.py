@@ -119,11 +119,3 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
     conn.close()
     return res
 
-
-def start_computation(query, radius: float, num_results: int, pool: multiprocessing.Pool) -> Dict[str, multiprocessing.pool.AsyncResult]:
-    results = {
-        'sketches_small': pool.apply_async(get_results_messif, args=(query, -1, num_results, 'sketches_small')),
-        'sketches_large': pool.apply_async(get_results_messif, args=(query, radius, num_results, 'sketches_large')),
-        'full': pool.apply_async(get_results_messif, args=(query, radius, num_results, 'full'))
-    }
-    return results

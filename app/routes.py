@@ -5,7 +5,7 @@ import python_distance
 
 from . import application
 from .config import *
-from .computation import process_input, start_computation, prepare_indexed_chain, get_stats, get_random_pdb_id
+from .computation import process_input, get_results_messif, prepare_indexed_chain, get_stats, get_random_pdb_id
 
 pool = multiprocessing.Pool()
 
@@ -18,7 +18,6 @@ def index():
         return render_template('index.html')
 
     if 'select_pdb_id' in request.form:
-        print('Prepare indexed')
         try:
             pdb_id = request.form['pdbid'].upper()
             comp_id, ids = prepare_indexed_chain(pdb_id)
@@ -71,10 +70,19 @@ def search():
     else:
         query = f'{name}:{chain}'
 
+    computation_results[comp_id] = {
+        'sketches_small': None,
+        'sketches_large': None,
+        'full': None,
+        'query': query,
+        'radius': radius,
+        'num_results': num_results,
+        'result_stats': {}
+
+    }
     try:
-        computation_results[comp_id] = start_computation(query, radius, num_results, pool)
-        computation_results[comp_id]['query'] = query
-        computation_results[comp_id]['result_stats'] = {}
+        computation_results[comp_id]['sketches_small'] = pool.apply_async(get_results_messif, args=(
+            query, -1, num_results, 'sketches_small'))
     except RuntimeError:
         flash('Calculation failed')
         return render_template('index.html')
@@ -121,24 +129,33 @@ def get_results():
 
     comp_data = computation_results[comp_id]
 
-    sketches_small = comp_data['sketches_small']
-    sketches_large = comp_data['sketches_large']
-    full = comp_data['full']
-
     res_data = {'chain_ids': [], 'phase': 'none'}
 
+    sketches_small = comp_data['sketches_small']
     if sketches_small.ready():
         res_data['chain_ids'], stats = sketches_small.get()
         res_data['phase'] = 'sketches_small'
         res_data['sketches_small_statistics'] = stats
-    if sketches_large.ready():
-        res_data['chain_ids'], stats = sketches_large.get()
-        res_data['phase'] = 'sketches_large'
-        res_data['sketches_large_statistics'] = stats
-    if full.ready():
-        res_data['chain_ids'], stats = full.get()
-        res_data['phase'] = 'full'
-        res_data['full_statistics'] = stats
+
+        sketches_large = comp_data['sketches_large']
+        if sketches_large is not None and sketches_large.ready():
+            res_data['chain_ids'], stats = sketches_large.get()
+            res_data['phase'] = 'sketches_large'
+            res_data['sketches_large_statistics'] = stats
+
+            full = comp_data['full']
+            if full is not None and full.ready():
+                res_data['chain_ids'], stats = full.get()
+                res_data['phase'] = 'full'
+                res_data['full_statistics'] = stats
+
+    if res_data['phase'] == 'sketches_small' and comp_data['sketches_large'] is None:
+        comp_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
+                                comp_data['query'], comp_data['radius'], comp_data['num_results'], 'sketches_large'))
+
+    if res_data['phase'] == 'sketches_large' and comp_data['full'] is None:
+        comp_data['full'] = pool.apply_async(get_results_messif, args=(
+                                comp_data['query'], comp_data['radius'], comp_data['num_results'], 'full'))
 
     query = comp_data['query']
     for chain_id in res_data['chain_ids']:
