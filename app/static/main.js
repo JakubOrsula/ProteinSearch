@@ -65,7 +65,7 @@ function init_results() {
         paging: false,
         searching: false,
         info: false,
-        columnDefs : [
+        columnDefs: [
             {
                 targets: [2, 3, 4, 5, 6],
                 className: 'text-right'
@@ -102,44 +102,10 @@ function init_results() {
             success: function (data) {
                 let idx = 0;
                 statusTable.clear().draw();
-                resultsTable.clear().draw();
-                $('#table > tbody').empty();
-                for (const res of data['statistics']) {
-                    let [pdbid, chain] = res['object'].split(':');
-                    pdbid = pdbid.toLowerCase();
-                    let details_params = new URLSearchParams();
-                    details_params.set('comp_id', comp_id);
-                    details_params.set('object', res['object']);
-                    details_params.set('chain', chain);
-                    let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
-                    let qscore = '?';
-                    let rmsd = '?';
-                    let aligned = '?';
-                    let seq_id = '?';
-
-                    if (res['qscore'] !== -1) {
-                        qscore = res['qscore'];
-                        rmsd = res['rmsd'];
-                        aligned = res['aligned'];
-                        seq_id = res['seq_id'];
-                    }
-
-                    resultsTable.row.add([idx + 1,
-                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank">${res['object']}</a>`,
-                        `<div class="name_${pdbid}">${name}</div>`,
-                        qscore, rmsd, aligned, seq_id,
-                        `<a href="/details?${details_params.toString()}" target="_blank">Show</a>`]).draw();
-
-                    if (localStorage.getItem(pdbid) === null) {
-                        fetch_name(pdbid);
-                    }
-                    idx++;
-                }
-
-                resultsTable.columns.adjust().draw();
-
                 let phases_done = 0;
+                let last_phase = '';
                 if (data.hasOwnProperty('sketches_small_statistics')) {
+                    last_phase = 'sketches_small';
                     phases_done++;
                     const small = data['sketches_small_statistics'];
                     statusTable.row.add([
@@ -160,6 +126,7 @@ function init_results() {
                 }
 
                 if (data.hasOwnProperty('sketches_large_statistics')) {
+                    last_phase = 'sketches_large';
                     phases_done++;
                     const large = data['sketches_large_statistics'];
                     statusTable.row.add([
@@ -180,6 +147,7 @@ function init_results() {
                 }
 
                 if (data.hasOwnProperty('full_statistics')) {
+                    last_phase = 'full';
                     phases_done++;
                     const full = data['full_statistics'];
                     statusTable.row.add([
@@ -199,7 +167,55 @@ function init_results() {
                     ]).draw();
                 }
 
+                let $displayed_phase = $('#displayed_phase');
+                const displayed_phase = $displayed_phase.val();
+                if (last_phase !== displayed_phase) {
+                    resultsTable.clear().draw();
+                    $displayed_phase.val(last_phase);
+                }
+
                 statusTable.columns.adjust().draw();
+
+                for (const res of data['statistics']) {
+                    let [pdbid, chain] = res['object'].split(':');
+                    pdbid = pdbid.toLowerCase();
+                    let details_params = new URLSearchParams();
+                    details_params.set('comp_id', comp_id);
+                    details_params.set('object', res['object']);
+                    details_params.set('chain', chain);
+                    let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
+
+                    let qscore = '?';
+                    let rmsd = '?';
+                    let aligned = '?';
+                    let seq_id = '?';
+
+                    if (res['qscore'] !== -1) {
+                        qscore = res['qscore'].toFixed(3);
+                        rmsd = res['rmsd'].toFixed(3);
+                        aligned = res['aligned'];
+                        seq_id = res['seq_id'].toFixed(3);
+                    }
+
+                    const data = [idx + 1,
+                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank">${res['object']}</a>`,
+                        `<div class="name_${pdbid}" style="max-width: 900px">${name}</div>`,
+                        qscore, rmsd, aligned, seq_id,
+                        `<a href="/details?${details_params.toString()}" target="_blank">Show</a>`];
+
+                    if ($(`[id="${res['object']}"]`).length) {
+                        resultsTable.row(`[id="${res['object']}"]`).data(data);
+                    } else {
+                        resultsTable.row.add(data).node().id = res['object'];
+                    }
+
+                    if (localStorage.getItem(pdbid) === null) {
+                        fetch_name(pdbid);
+                    }
+                    idx++;
+                }
+                resultsTable.columns.adjust().draw();
+
                 if (phases_done !== 3 || data['status'] !== 'FINISHED') {
                     setTimeout(worker, 500);
                 }
