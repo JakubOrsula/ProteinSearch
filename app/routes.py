@@ -5,7 +5,7 @@ import python_distance
 
 from . import application
 from .config import *
-from .computation import process_input, start_computation, prepare_indexed_chain, get_stats
+from .computation import process_input, start_computation, prepare_indexed_chain, get_stats, get_random_pdb_id
 
 pool = multiprocessing.Pool()
 
@@ -17,9 +17,33 @@ def index():
     if request.method == 'GET':
         return render_template('index.html')
 
-    input_type = request.form['input-type']
+    print(request.form)
+    if 'select_pdb_id' in request.form:
+        print('Prepare indexed')
+        try:
+            pdb_id = request.form['pdbid'].upper()
+            comp_id, ids = prepare_indexed_chain(pdb_id)
+        except RuntimeError:
+            flash('Incorrect PDB ID')
+            return render_template('index.html')
+        return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
+                               uploaded=False)
+    elif 'select_random' in request.form:
+        print('Prepare random')
+        pdb_id = get_random_pdb_id()
+        try:
+            comp_id, ids = prepare_indexed_chain(pdb_id)
+        except RuntimeError:
+            flash('Internal error')
+            return render_template('index.html')
+        except FileNotFoundError:
+            flash('Internal error: Required source file not found')
+            return render_template('index.html')
 
-    if input_type == 'file':
+        return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
+                               uploaded=False)
+    elif 'upload' in request.form:
+        print('Prepare upload')
         try:
             comp_id, ids = process_input(request)
         except RuntimeError:
@@ -34,13 +58,8 @@ def index():
         return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=filename,
                                uploaded=True)
     else:
-        try:
-            comp_id, ids = prepare_indexed_chain(request)
-        except RuntimeError:
-            flash('Incorrect PDB ID')
-            return render_template('index.html')
-        return render_template('index.html', chains=ids, selected=True, comp_id=comp_id,
-                               input_name=request.form['pdbid'].upper(), uploaded=False)
+        flash('Unknown error')
+        return render_template('index.html')
 
 
 @application.route('/results', methods=['POST'])

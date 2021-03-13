@@ -3,40 +3,26 @@
 
 function init_index() {
     let $file = $('#file');
-    let $select = $('#select');
-    let $input_type = $('#input-type');
+    let $upload = $('#upload');
     let $pdbid = $('#pdbid');
-
-    $input_type.on('change', function () {
-        if ($('input[name="input-type"]:checked').val() === 'file') {
-            $file.prop('disabled', false);
-            $select.prop('disabled', false);
-            $pdbid.prop('disabled', true);
-        } else {
-            $file.prop('disabled', true);
-            $select.prop('disabled', true);
-            $pdbid.prop('disabled', false);
-        }
-    })
+    let $select_pdb_id = $('#select_pdb_id');
 
     $file.on('change', function () {
         if ($file.val()) {
-            $select.prop('disabled', false);
+            $upload.prop('disabled', false);
         } else {
-            $select.prop('disabled', true);
+            $upload.prop('disabled', true);
         }
     });
 
     $pdbid.on('input', function () {
         let val = $pdbid.val();
         if (val.length === 4) {
-            $select.prop('disabled', false);
+            $select_pdb_id.prop('disabled', false);
         } else {
-            $select.prop('disabled', true);
+            $select_pdb_id.prop('disabled', true);
         }
     })
-
-    $input_type.trigger('change');
 }
 
 

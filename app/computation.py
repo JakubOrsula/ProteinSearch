@@ -14,9 +14,17 @@ import python_distance
 from .config import *
 
 
-def prepare_indexed_chain(req: Request):
-    pdb_id = req.form['pdbid'].upper()
+def get_random_pdb_id() -> str:
+    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    c = conn.cursor()
+    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT 1')
+    pdb_id = c.fetchall()[0][0].split(':')[0]
+    c.close()
+    conn.close()
+    return pdb_id
 
+
+def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     c.execute(f'SELECT gesamtId FROM proteinChain WHERE gesamtId LIKE "{pdb_id}%"')
