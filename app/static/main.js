@@ -6,6 +6,56 @@ function init_index() {
     let $upload = $('#upload');
     let $pdbid = $('#pdbid');
     let $select_pdb_id = $('#select_pdb_id');
+    let $select_random = $('#select_random');
+    let $pdbs = $('#pdbs');
+    let $search_input = $('#search_phrase');
+    let $search_pdb = $('#search_pdb');
+
+    $search_input.on('keypress', function (event) {
+        if (event.keyCode === 13 && $search_input.val().length > 3) {
+            $search_pdb.trigger('click');
+        }
+    })
+
+    $search_input.on('input', function () {
+        if ($search_input.val().length > 3) {
+            $search_pdb.prop('disabled', false);
+        } else {
+            $search_pdb.prop('disabled', true);
+        }
+    })
+
+    $select_random.on('click', function () {
+        $.ajax({
+                url: '/get_random_pdbs',
+                success: function (data) {
+                    $pdbs.empty();
+                    for (const [pdb_id, name] of Object.entries(data)) {
+                        $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
+                                                name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
+                    }
+                }
+            }
+        )
+    })
+
+    $search_pdb.on('click', function () {
+        const query = $search_input.val();
+        $.ajax({
+                url: `/get_searched_pdbs?query=${query}`,
+                success: function (data) {
+                    $pdbs.empty();
+                    for (const [pdb_id, name] of Object.entries(data)) {
+                        $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
+                                                name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
+                    }
+                    if ($.isEmptyObject(data)) {
+                        $pdbs.append('<div class="list-group-item alert-danger">No proteins found</div>');
+                    }
+                }
+            }
+        )
+    })
 
     $file.on('change', function () {
         if ($file.val()) {

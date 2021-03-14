@@ -14,25 +14,47 @@ import python_distance
 from .config import *
 
 
-def get_random_pdb_id() -> str:
+def get_random_pdb_ids(number: int) -> List[str]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT 1')
-    pdb_id = c.fetchall()[0][0].split(':')[0]
+    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %d', (number, ))
+    pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
     c.close()
     conn.close()
-    return pdb_id
+    return pdb_ids
+
+
+def get_names(pdb_ids: List[str]) -> Dict[str, str]:
+    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    c = conn.cursor()
+    names = {}
+    for pdb_id in pdb_ids:
+        c.execute(f'SELECT name FROM protein WHERE pdbId = %s', (pdb_id, ))
+        names[pdb_id] = c.fetchall()[0][0]
+    c.close()
+    conn.close()
+    return names
+
+
+def search_title(query: str) -> List[str]:
+    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    c = conn.cursor()
+    c.execute(f'SELECT pdbId FROM protein WHERE name LIKE %s', (f'%{query}%', ))
+    pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
+    c.close()
+    conn.close()
+    return pdb_ids
 
 
 def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain WHERE gesamtId LIKE "{pdb_id}%"')
+    c.execute(f'SELECT gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
     chains = [chain_id[0].split(':')[1] for chain_id in c.fetchall()]
     c.close()
     conn.close()
     if not chains:
-        raise RuntimeError()
+        raise RuntimeError('No protein chains detected.')
 
     tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
     os.chmod(tmpdir, 0o755)

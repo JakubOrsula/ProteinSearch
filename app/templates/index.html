@@ -7,6 +7,12 @@
     <title>Protein Chain Similarity Search</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <style>
+        .list-group-item {
+            padding: 0.5rem 0.5rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -32,9 +38,14 @@
             {% endfor %}
         {% endif %}
     {% endwith %}
+    <div class="row pb-2">
+        <div class="col">
+            <span class="h4">1. Select protein</span>
+        </div>
+    </div>
 
     <form method="post" enctype="multipart/form-data" action="{{ url_for('index') }}">
-        <div class="row pt-5">
+        <div class="row">
             <div class="col">
                 <fieldset id="fs-input" {% if selected %} disabled {% endif %}>
                     <div class="card-group">
@@ -43,26 +54,17 @@
                                 <h5 class="card-title">Select by PDB ID</h5>
                                 <p class="card-text">Select indexed chain by PDB ID.</p>
                                 <div class="row pb-2">
-                                    <div class="col">
-                                        <label class="col-form-label" for="pdbid">
-                                            PDB ID:
-                                        </label>
-                                    </div>
-                                    <div class="col">
-                                        <input class="form-check-inline" type="text" size="8" id="pdbid" name="pdbid">
-                                    </div>
-                                </div>
-                                <div class="row pb-2">
-                                    <div class="col-2">
-                                        <input class="btn btn-primary" type="submit" id="select_pdb_id"
-                                               name="select_pdb_id" value="Select" disabled>
-                                    </div>
-                                    <div class="col">
-                                        <input class="btn btn-primary" type="submit" id="select_random"
-                                               name="select_random" value="Select random">
+                                    <div class="col form-inline">
+                                        <div class="form-group">
+                                            <label class="col-form-label mr-3" for="pdbid"> PDB ID: </label>
+                                            <input class="form-control mr-3" type="text" size="8" id="pdbid"
+                                                   name="pdbid">
+                                            <input class="form-control btn btn-primary" type="submit"
+                                                   id="select_pdb_id"
+                                                   name="select_pdb_id" value="Select" disabled>
+                                        </div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
 
@@ -70,14 +72,16 @@
                             <div class="card-body">
                                 <h5 class="card-title">File upload</h5>
                                 <p class="card-text">Upload single PDB or mmCIF file.</p>
-                                <div class="row pb-2">
-                                    <div class="col">
-                                        <input class="form-check" type="file" name="file" id="file" accept=".pdb, .cif">
-                                    </div>
-                                </div>
-                                <div class="row pb-2">
-                                    <div class="col">
-                                        <input class="btn btn-primary" type="submit" id="upload" name="upload" value="Upload" disabled>
+                                <div class="form-inline">
+                                    <div class="row form-group">
+                                        <div class="col">
+                                            <input class="form-control-file" type="file" name="file" id="file"
+                                                   accept=".pdb, .cif">
+                                        </div>
+                                        <div class="col-2">
+                                            <input class="btn btn-primary" type="submit" id="upload" name="upload"
+                                                   value="Upload" disabled>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -87,20 +91,64 @@
                 </fieldset>
             </div>
         </div>
+        <div class="row">
+            <div class="col">
+                <fieldset id="fs-search" {% if selected %} disabled {% endif %}>
+                    <div class="card" style="height: 300px">
+                        <div class="card-body">
+                            <h5 class="card-title">Search</h5>
+                            <div class="row">
+                                <div class="col-5">
+                                    <p class="card-text">Search for indexed proteins by title.</p>
+
+                                    <div class="form-inline">
+                                        <label class="col-form-label mr-3" for="search_phrase">Phrase: </label>
+                                        <input class="form-control mr-3" type="text" id="search_phrase"
+                                               name="search_phrase">
+                                        <button type="button" id="search_pdb" class="btn btn-primary" disabled>
+                                            Search
+                                        </button>
+                                    </div>
+
+                                    <p class="card-text pt-3">Or select few random ones.</p>
+                                    <input class="btn btn-primary" type="button" id="select_random" name="select_random"
+                                           value="Offer random">
+                                </div>
+                                <div class="col">
+                                    <div class="list-group" id="pdbs" style="max-height: 220px; overflow-y:auto;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+        </div>
     </form>
+
+
+    <div class="row pb-2 pt-3">
+        <div class="col">
+            <span class="h4">2. Select chain</span>
+        </div>
+    </div>
+
     <form method="post" enctype="multipart/form-data" action="{{ url_for('search', comp_id=comp_id) }}">
         <div class="row">
             <div class="col">
                 <div class="card">
                     <div class="card-body">
                         <fieldset id="fs-chains" {% if not selected %} disabled {% endif %}>
-                            <h5 class="card-title">Detected chains {% if selected %} for {{ input_name }} {% endif %}</h5>
+                            <h5 class="card-title">Detected chains {% if selected %} for
+                                <b>{{ input_name }} </b>{% endif %} </h5>
+                            <p class="card-text"> {% if name is defined %} {{ name }} {% endif %} </p>
                             <div class="row pb-2">
                                 <div class="col-2">
                                     <label class="col-form-label" for="chain">Chains: </label>
                                 </div>
                                 <div class="col">
-                                    <select class="form-control form-check-inline w-auto" name="chain">
+                                    <select class="form-control w-auto" name="chain">
                                         {% for id in chains | default([], True) %}
                                             <option value="{{ id }}">{{ id }}</option>
                                         {% endfor %}
@@ -124,14 +172,14 @@
                                     <label class="col-form-label" for="qscore-range">Minimum Q-score: </label>
                                 </div>
                                 <div class="col">
-                                    <input class="form-check" type="number" name="qscore-range" value="0.5"
+                                    <input class="form-control" type="number" name="qscore-range" value="0.5"
                                            min="0.3" max="1.0" step="0.1" id="qscore-range">
                                 </div>
                                 <div class="col">
                                     <label class="col-form-label" for="num-results">Number of results: </label>
                                 </div>
                                 <div class="col">
-                                    <input class="form-check" type="number" name="num-results" value="30"
+                                    <input class="form-control" type="number" name="num-results" value="30"
                                            min="10" max="200" step="10" id="num-results">
                                 </div>
                             </div>
@@ -147,8 +195,8 @@
 
         <div class="row pt-4">
             <div class="col">
-                <input class="btn btn-success" type="submit" id="run" value="Run" {% if not selected %}
-                       disabled {% endif %}>
+                <button class="btn btn-success" type="submit" id="run" {% if not selected %}
+                        disabled {% endif %}>Run</button>
                 <a class="btn btn-dark" href="{{ url_for('index') }}">Reset</a>
             </div>
         </div>

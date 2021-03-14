@@ -5,7 +5,7 @@ import python_distance
 
 from . import application
 from .config import *
-from .computation import process_input, get_results_messif, prepare_indexed_chain, get_stats, get_random_pdb_id
+from .computation import *
 
 pool = multiprocessing.Pool()
 
@@ -24,21 +24,23 @@ def index():
         except RuntimeError:
             flash('Incorrect PDB ID')
             return render_template('index.html')
+        name = get_names([pdb_id])[pdb_id]
         return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
-                               uploaded=False)
-    elif 'select_random' in request.form:
-        pdb_id = get_random_pdb_id()
+                               uploaded=False, name=name)
+    elif 'selected' in request.form:
+        pdb_id = request.form['selected']
         try:
             comp_id, ids = prepare_indexed_chain(pdb_id)
-        except RuntimeError:
-            flash('Internal error')
+        except RuntimeError as e:
+            flash(f'Internal error: {e}')
             return render_template('index.html')
         except FileNotFoundError:
             flash('Internal error: Required source file not found')
             return render_template('index.html')
 
+        name = get_names([pdb_id])[pdb_id]
         return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
-                               uploaded=False)
+                               uploaded=False, name=name)
     elif 'upload' in request.form:
         try:
             comp_id, ids = process_input(request)
@@ -121,6 +123,17 @@ def get_pdb():
     else:
         file = f'{obj}.aligned.pdb'
     return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{comp_id}'), file, cache_timeout=0)
+
+
+@application.route('/get_random_pdbs')
+def get_random_pdbs():
+    return jsonify(get_names(get_random_pdb_ids(10))), 200
+
+
+@application.route('/get_searched_pdbs')
+def get_searched_pdbs():
+    query = request.args.get('query')
+    return jsonify(get_names(search_title(query))), 200
 
 
 @application.route('/get_results')
