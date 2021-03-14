@@ -1,6 +1,5 @@
 import os
 import tempfile
-import multiprocessing.pool
 import shutil
 import requests
 import json
@@ -17,7 +16,7 @@ from .config import *
 def get_random_pdb_ids(number: int) -> List[str]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %d', (number, ))
+    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %s', (number, ))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
     c.close()
     conn.close()
@@ -95,6 +94,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
 
     response = json.loads(req.content.decode('utf-8'))
     if response['status']['code'] not in (200, 201):
+        print(response)
         raise RuntimeError('MESSIF returned something wrong')
 
     messif_ids = ', '.join(record['_id'] for record in response['answer_records'])
@@ -106,9 +106,13 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
         'search_dist_count': response['statistics']['DistanceComputations']
     }
 
+    if not messif_ids:
+        return [], statistics
+
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({messif_ids})')
+    query_template = ', '.join(['%s'] * len(messif_ids))
+    c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({query_template})', tuple(messif_ids))
     chain_ids = [candidate[0] for candidate in c.fetchall()]
     c.close()
     conn.close()
@@ -121,8 +125,8 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
     c = conn.cursor()
 
     select_query = f'SELECT qscore, rmsd, seqIdentity, alignedResidues FROM queriesNearestNeighboursStats ' \
-                   f'WHERE queryGesamtId = "{query}" AND nnGesamtId = "{other}"'
-    c.execute(select_query)
+                   f'WHERE queryGesamtId = %s AND nnGesamtId = %s'
+    c.execute(select_query, (query, other))
     query_result = c.fetchall()
     if not query_result:
         python_distance.init_library(ARCHIVE_DIR, '/dev/null', True, 0, 10)
@@ -132,8 +136,8 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
         elapsed = int((end - begin) * 1000)
         if elapsed > 1000:
             insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
-                           f'({elapsed}, NULL, "{query}", "{other}", {res[0]}, {res[1]}, {res[3]}, {res[2]})'
-            c.execute(insert_query)
+                           f'(%s, NULL, %s, %s, %s, %s, %s, %s)'
+            c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2]))
             conn.commit()
     else:
         res = query_result[0]
