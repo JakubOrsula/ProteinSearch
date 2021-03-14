@@ -130,7 +130,7 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
         _, *res = python_distance.get_results(query, other, ARCHIVE_DIR, QSCORE_THRESHOLD)
         end = time.time()
         elapsed = int((end - begin) * 1000)
-        if elapsed > 100:
+        if elapsed > 1000:
             insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
                            f'({elapsed}, NULL, "{query}", "{other}", {res[0]}, {res[1]}, {res[3]}, {res[2]})'
             c.execute(insert_query)
