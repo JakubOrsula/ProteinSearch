@@ -94,7 +94,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
         raise RuntimeError('MESSIF not responding')
 
     response = json.loads(req.content.decode('utf-8'))
-    if response['status']['code'] != 200:
+    if response['status']['code'] not in (200, 201):
         raise RuntimeError('MESSIF returned something wrong')
 
     messif_ids = ', '.join(record['_id'] for record in response['answer_records'])
