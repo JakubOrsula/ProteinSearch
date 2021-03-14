@@ -138,6 +138,9 @@ function init_results() {
         scrollResize: true,
         scrollY: 100,
         info: false,
+        language: {
+            emptyTable: 'No similar protein chains found in the database.'
+        }
     });
 
     (function worker() {
