@@ -10,15 +10,16 @@ function init_index() {
     let $pdbs = $('#pdbs');
     let $search_input = $('#search_phrase');
     let $search_pdb = $('#search_pdb');
+    let $status = $('#status');
 
     $search_input.on('keypress', function (event) {
-        if (event.keyCode === 13 && $search_input.val().length > 3) {
+        if (event.keyCode === 13 && $search_input.val().length > 2) {
             $search_pdb.trigger('click');
         }
     })
 
     $search_input.on('input', function () {
-        if ($search_input.val().length > 3) {
+        if ($search_input.val().length > 2) {
             $search_pdb.prop('disabled', false);
         } else {
             $search_pdb.prop('disabled', true);
@@ -34,6 +35,8 @@ function init_index() {
                         $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
                                                 name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
                     }
+
+                    $status.html('Displaying 10 random results');
                 }
             }
         )
@@ -45,12 +48,17 @@ function init_index() {
                 url: `/get_searched_pdbs?query=${query}`,
                 success: function (data) {
                     $pdbs.empty();
+                    const num_results = Object.keys(data).length;
                     for (const [pdb_id, name] of Object.entries(data)) {
                         $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
                                                 name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
+                        $status.html(`Displaying ${num_results} result(s)`);
                     }
-                    if ($.isEmptyObject(data)) {
-                        $pdbs.append('<div class="list-group-item alert-danger">No proteins found</div>');
+                    if (num_results === 1000) {
+                        $status.html('Displaying first 1000 results');
+                    }
+                    if (num_results === 0) {
+                        $status.html('No results found');
                     }
                 }
             }

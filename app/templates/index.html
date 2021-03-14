@@ -57,8 +57,8 @@
                                     <div class="col form-inline">
                                         <div class="form-group">
                                             <label class="col-form-label mr-3" for="pdbid"> PDB ID: </label>
-                                            <input class="form-control mr-3" type="text" size="8" id="pdbid"
-                                                   name="pdbid">
+                                            <input class="form-control mr-3" type="text" size="20" id="pdbid"
+                                                   name="pdbid" placeholder="4-letter code (e.g., 12AS) ">
                                             <input class="form-control btn btn-primary" type="submit"
                                                    id="select_pdb_id"
                                                    name="select_pdb_id" value="Select" disabled>
@@ -104,7 +104,7 @@
                                     <div class="form-inline">
                                         <label class="col-form-label mr-3" for="search_phrase">Phrase: </label>
                                         <input class="form-control mr-3" type="text" id="search_phrase"
-                                               name="search_phrase">
+                                               name="search_phrase" size=20 placeholder="Enter at least 3 characters">
                                         <button type="button" id="search_pdb" class="btn btn-primary" disabled>
                                             Search
                                         </button>
@@ -113,6 +113,8 @@
                                     <p class="card-text pt-3">Or select few random ones.</p>
                                     <input class="btn btn-primary" type="button" id="select_random" name="select_random"
                                            value="Offer random">
+                                    <br>
+                                    <label class="col-form-label mt-2" id="status"></label>
                                 </div>
                                 <div class="col">
                                     <div class="list-group" id="pdbs" style="max-height: 220px; overflow-y:auto;">
