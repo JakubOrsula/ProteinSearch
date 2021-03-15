@@ -97,7 +97,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
         print(response)
         raise RuntimeError('MESSIF returned something wrong')
 
-    messif_ids = ', '.join(record['_id'] for record in response['answer_records'])
+    messif_ids = [int(record['_id']) for record in response['answer_records']]
 
     statistics = {
         'pivot_dist_time': response['query_record']['pivotDistTimes'],
