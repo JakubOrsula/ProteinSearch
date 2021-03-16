@@ -182,6 +182,8 @@ def get_results():
         if job.ready():
             completed += 1
             qscore, rmsd, seq_id, aligned = job.get()
+            if qscore < 1 - comp_data['radius']:
+                continue
             statistics.append({'object': chain_id,
                                'qscore': round(qscore, 3),
                                'rmsd': round(rmsd, 3),
