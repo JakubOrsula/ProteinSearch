@@ -16,7 +16,7 @@ from .config import *
 def get_random_pdb_ids(number: int) -> List[str]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %s', (number, ))
+    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %s', (number,))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
     c.close()
     conn.close()
@@ -28,7 +28,7 @@ def get_names(pdb_ids: List[str]) -> Dict[str, str]:
     c = conn.cursor()
     names = {}
     for pdb_id in pdb_ids:
-        c.execute(f'SELECT name FROM protein WHERE pdbId = %s', (pdb_id, ))
+        c.execute(f'SELECT name FROM protein WHERE pdbId = %s', (pdb_id,))
         names[pdb_id] = c.fetchall()[0][0]
     c.close()
     conn.close()
@@ -38,7 +38,8 @@ def get_names(pdb_ids: List[str]) -> Dict[str, str]:
 def search_title(query: str, limit: int) -> List[str]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT pdbId FROM protein WHERE name LIKE %s LIMIT %s', (f'%{query}%', limit))
+    c.execute(f'SELECT id FROM proteinId WHERE id IN (SELECT pdbId FROM protein WHERE name LIKE %s) LIMIT %s',
+              (f'%{query}%', limit))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
     c.close()
     conn.close()
@@ -144,4 +145,3 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
     c.close()
     conn.close()
     return res
-
