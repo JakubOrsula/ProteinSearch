@@ -123,14 +123,14 @@ function init_results() {
 
     let resultsTable = $('#table').DataTable({
         columns: [
-            {'title': 'No.'},
-            {'title': 'Chain'},
-            {'title': 'Name'},
-            {'title': 'Q-score'},
-            {'title': 'RMSD'},
-            {'title': 'Aligned res.'},
-            {'title': 'Seq. identity'},
-            {'title': 'Alignment', 'searchable': false, 'orderable': false},
+            {title: 'No.', width: '80px'},
+            {title: 'Chain', width: '80px'},
+            {title: 'Name'},
+            {title: 'Q-score', width: '80px'},
+            {title: 'RMSD', width: '80px'},
+            {title: 'Aligned res.', width: '100px'},
+            {title: 'Seq. identity', width: '100px'},
+            {title: 'Alignment', 'searchable': false, 'orderable': false, width: '80px'},
         ],
         searching: false,
         paging: false,
@@ -222,6 +222,17 @@ function init_results() {
                 }
 
                 statusTable.columns.adjust().draw();
+
+                // Remove rows that had ? but now are not present in results (they are below Q-score limit)
+                let to_remove = [];
+                resultsTable.rows().every(function () {
+                    if (!(this.node().id in data['statistics'])) {
+                        to_remove.push(this.node());
+                    }
+                });
+                to_remove.forEach(function(node) {
+                   resultsTable.row(node).remove().draw();
+                });
 
                 for (const res of data['statistics']) {
                     let [pdbid, chain] = res['object'].split(':');
