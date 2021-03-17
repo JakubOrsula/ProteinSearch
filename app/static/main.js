@@ -1,5 +1,17 @@
 'use strict';
 
+function format_time(time_in_ms) {
+    if (time_in_ms < 60000) {
+        return `${time_in_ms.toLocaleString('cs-CZ')} ms`;
+    } else {
+        const time_in_s = Math.floor(time_in_ms / 1000);
+        const minutes = Math.floor(time_in_s / 60);
+        const seconds = time_in_s % 60;
+
+        return `${minutes} m ${seconds} s`;
+    }
+}
+
 
 function init_index() {
     let $file = $('#file');
@@ -159,10 +171,10 @@ function init_results() {
                         '<b>Sketches small</b>',
                         '🗸',
                         small['pivot_dist_count'],
-                        small['pivot_dist_time'],
+                        format_time(small['pivot_dist_time']),
                         small['search_dist_count'],
-                        small['search_dist_time'],
-                        `<b>${(small['pivot_dist_time'] + small['search_dist_time']).toLocaleString('cs-CZ')}`
+                        format_time(small['search_dist_time']),
+                        `<b>${format_time(small['pivot_dist_time'] + small['search_dist_time'])}</b>`
                     ]).draw();
                 } else {
                     statusTable.row.add([
@@ -180,10 +192,10 @@ function init_results() {
                         '<b>Sketches large</b>',
                         '🗸',
                         large['pivot_dist_count'],
-                        large['pivot_dist_time'],
+                        format_time(large['pivot_dist_time']),
                         large['search_dist_count'],
-                        large['search_dist_time'],
-                        `<b>${(large['pivot_dist_time'] + large['search_dist_time']).toLocaleString('cs-CZ')}`
+                        format_time(large['search_dist_time']),
+                        `<b>${format_time(large['pivot_dist_time'] + large['search_dist_time'])}</b>`
                     ]).draw();
                 } else {
                     statusTable.row.add([
@@ -201,10 +213,10 @@ function init_results() {
                         '<b>PPP codes + sketches</b>',
                         '🗸',
                         full['pivot_dist_count'],
-                        full['pivot_dist_time'],
+                        format_time(full['pivot_dist_time']),
                         full['search_dist_count'],
-                        full['search_dist_time'] - full['pivot_dist_time'],
-                        `<b>${full['search_dist_time'].toLocaleString('cs-CZ')}</b>`
+                        format_time(full['search_dist_time'] - full['pivot_dist_time']),
+                        `<b>${format_time(full['search_dist_time'])}</b>`
                     ]).draw();
                 } else {
                     statusTable.row.add([
