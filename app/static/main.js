@@ -124,8 +124,8 @@ function init_results() {
     let resultsTable = $('#table').DataTable({
         columns: [
             {title: 'No.', width: '80px'},
-            {title: 'Chain', width: '80px'},
-            {title: 'Name'},
+            {title: 'Chain ID', width: '80px'},
+            {title: 'Protein (link to PDBe)'},
             {title: 'Q-score', width: '80px'},
             {title: 'RMSD', width: '80px'},
             {title: 'Aligned res.', width: '100px'},
@@ -230,8 +230,8 @@ function init_results() {
                         to_remove.push(this.node());
                     }
                 });
-                to_remove.forEach(function(node) {
-                   resultsTable.row(node).remove().draw();
+                to_remove.forEach(function (node) {
+                    resultsTable.row(node).remove().draw();
                 });
 
                 for (const res of data['statistics']) {
@@ -255,9 +255,10 @@ function init_results() {
                         seq_id = res['seq_id'].toFixed(3);
                     }
 
-                    const data = [idx + 1,
-                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank">${res['object']}</a>`,
-                        `<div class="name_${pdbid}" style="max-width: 900px">${name}</div>`,
+                    const data = [idx + 1, res['object'],
+                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank">
+                            <div class="name_${pdbid}" style="max-width: 900px">${name}</div>
+                        </a>`,
                         qscore, rmsd, aligned, seq_id,
                         `<a href="/details?${details_params.toString()}" target="_blank">Show</a>`];
 
