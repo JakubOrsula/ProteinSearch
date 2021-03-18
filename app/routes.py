@@ -171,9 +171,10 @@ def get_results():
                                 comp_data['query'], comp_data['radius'], comp_data['num_results'], 'full'))
 
     query = comp_data['query']
+    min_qscore = 1 - comp_data['radius']
     for chain_id in res_data['chain_ids']:
         if chain_id not in comp_data['result_stats']:
-            comp_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id))
+            comp_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore))
 
     statistics = []
     completed = 0

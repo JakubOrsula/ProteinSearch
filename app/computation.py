@@ -121,7 +121,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     return chain_ids, statistics
 
 
-def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
+def get_stats(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
@@ -130,9 +130,8 @@ def get_stats(query: str, other: str) -> Tuple[float, float, float, int]:
     c.execute(select_query, (query, other))
     query_result = c.fetchall()
     if not query_result:
-        python_distance.init_library(ARCHIVE_DIR, '/dev/null', True, 0, 10)
         begin = time.time()
-        _, *res = python_distance.get_results(query, other, ARCHIVE_DIR, QSCORE_THRESHOLD)
+        _, *res = python_distance.get_results(query, other, ARCHIVE_DIR, min_qscore)
         end = time.time()
         elapsed = int((end - begin) * 1000)
         if elapsed > 1000:
