@@ -275,7 +275,7 @@ function init_results() {
                     let rmsd = '?';
                     let aligned = '?';
                     let seq_id = '?';
-                    let link = 'N/A';
+                    let link = `<img src="/static/empty.png" alt="Alignment thumbnail of ${res['object']}">`;
 
                     if (res['qscore'] !== -1) {
                         qscore = res['qscore'].toFixed(3);
