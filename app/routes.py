@@ -1,4 +1,4 @@
-from flask import render_template, request, flash, send_from_directory, jsonify, redirect
+from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for
 import os
 import multiprocessing
 import python_distance
@@ -20,17 +20,17 @@ def index():
     if 'select_pdb_id' in request.form:
         try:
             pdb_id = request.form['pdbid'].upper()
-            comp_id, ids = prepare_indexed_chain(pdb_id)
+            job_id, ids = prepare_indexed_chain(pdb_id)
         except RuntimeError:
             flash('Incorrect PDB ID')
             return render_template('index.html')
         name = get_names([pdb_id])[pdb_id]
-        return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
+        return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=pdb_id,
                                uploaded=False, name=name)
     elif 'selected' in request.form:
         pdb_id = request.form['selected']
         try:
-            comp_id, ids = prepare_indexed_chain(pdb_id)
+            job_id, ids = prepare_indexed_chain(pdb_id)
         except RuntimeError as e:
             flash(f'Internal error: {e}')
             return render_template('index.html')
@@ -39,17 +39,17 @@ def index():
             return render_template('index.html')
 
         name = get_names([pdb_id])[pdb_id]
-        return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=pdb_id,
+        return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=pdb_id,
                                uploaded=False, name=name)
     elif 'upload' in request.form:
         try:
-            comp_id, ids = process_input(request)
+            job_id, ids = process_input(request)
         except RuntimeError as e:
             flash(e)
             return render_template('index.html')
 
         filename = request.files['file'].filename
-        return render_template('index.html', chains=ids, selected=True, comp_id=comp_id, input_name=filename,
+        return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=filename,
                                uploaded=True)
     else:
         flash('Unknown error')
@@ -58,17 +58,17 @@ def index():
 
 @application.route('/search', methods=['POST'])
 def search():
-    comp_id: str = request.form['comp-id']
+    job_id: str = request.form['job_id']
     chain: str = request.form['chain']
-    name: str = request.form['input-name']
-    radius: float = 1 - float(request.form['qscore-range'])
-    num_results: int = int(request.form['num-results'])
+    name: str = request.form['input_name']
+    radius: float = 1 - float(request.form['qscore_range'])
+    num_results: int = int(request.form['num_results'])
     if request.form['uploaded'] == 'True':
-        query = f'_{comp_id}:{chain}'
+        query = f'_{job_id}:{chain}'
     else:
         query = f'{name}:{chain}'
 
-    computation_results[comp_id] = {
+    computation_results[job_id] = {
         'sketches_small': None,
         'sketches_large': None,
         'full': None,
@@ -76,49 +76,48 @@ def search():
         'radius': radius,
         'num_results': num_results,
         'result_stats': {}
-
     }
     try:
-        computation_results[comp_id]['sketches_small'] = pool.apply_async(get_results_messif, args=(
-            query, -1, num_results, 'sketches_small'))
+        computation_results[job_id]['sketches_small'] = pool.apply_async(get_results_messif, args=(
+            query, -1, num_results, 'sketches_small', job_id))
     except RuntimeError:
         flash('Calculation failed')
         return render_template('index.html')
 
-    return redirect(f'/results?comp_id={comp_id}&chain={chain}&name={name}')
+    return redirect(url_for('results', job_id=job_id, chain=chain, name=name))
 
 
 @application.route('/results')
 def results():
-    comp_id: str = request.args.get('comp-id')
+    job_id: str = request.args.get('job_id')
     chain: str = request.args.get('chain')
     name: str = request.args.get('name')
 
-    return render_template('results.html', query=chain, comp_id=comp_id, input_name=name)
+    return render_template('results.html', query=chain, job_id=job_id, input_name=name)
 
 
 @application.route('/details')
 def get_details():
-    comp_id: str = request.args.get('comp_id')
+    job_id: str = request.args.get('job_id')
     chain: str = request.args.get('chain')
     obj: str = request.args.get('object')
 
-    python_distance.prepare_aligned_PDBs(f'_{comp_id}:{chain}', obj, RAW_PDB_DIR,
-                                         os.path.join(COMPUTATIONS_DIR, f'query{comp_id}'))
+    python_distance.prepare_aligned_PDBs(f'_{job_id}:{chain}', obj, RAW_PDB_DIR,
+                                         os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
 
-    return render_template('details.html', object=obj, query_chain=chain, comp_id=comp_id)
+    return render_template('details.html', object=obj, query_chain=chain)
 
 
 @application.route('/get_pdb')
 def get_pdb():
-    comp_id: str = request.args.get('comp_id')
+    job_id: str = request.args.get('job_id')
     obj: str = request.args.get('object')
 
     if obj == '_query':
         file = 'query.pdb'
     else:
         file = f'{obj}.aligned.pdb'
-    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{comp_id}'), file, cache_timeout=0)
+    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), file, cache_timeout=0)
 
 
 @application.route('/get_random_pdbs')
@@ -140,52 +139,52 @@ def get_protein_names():
 
 @application.route('/get_results')
 def get_results():
-    comp_id: str = request.args.get('comp_id')
+    job_id: str = request.args.get('job_id')
 
-    comp_data = computation_results[comp_id]
+    job_data = computation_results[job_id]
 
     res_data = {'chain_ids': [], 'phase': 'none'}
 
-    sketches_small = comp_data['sketches_small']
+    sketches_small = job_data['sketches_small']
     if sketches_small.ready():
         res_data['chain_ids'], stats = sketches_small.get()
         res_data['phase'] = 'sketches_small'
         res_data['sketches_small_statistics'] = stats
 
-        sketches_large = comp_data['sketches_large']
+        sketches_large = job_data['sketches_large']
         if sketches_large is not None and sketches_large.ready():
             res_data['chain_ids'], stats = sketches_large.get()
             res_data['phase'] = 'sketches_large'
             res_data['sketches_large_statistics'] = stats
 
-            full = comp_data['full']
+            full = job_data['full']
             if full is not None and full.ready():
                 res_data['chain_ids'], stats = full.get()
                 res_data['phase'] = 'full'
                 res_data['full_statistics'] = stats
 
-    if res_data['phase'] == 'sketches_small' and comp_data['sketches_large'] is None:
-        comp_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
-                                comp_data['query'], comp_data['radius'], comp_data['num_results'], 'sketches_large'))
+    if res_data['phase'] == 'sketches_small' and job_data['sketches_large'] is None:
+        job_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
+                                job_data['query'], job_data['radius'], job_data['num_results'], 'sketches_large', job_id))
 
-    if res_data['phase'] == 'sketches_large' and comp_data['full'] is None:
-        comp_data['full'] = pool.apply_async(get_results_messif, args=(
-                                comp_data['query'], comp_data['radius'], comp_data['num_results'], 'full'))
+    if res_data['phase'] == 'sketches_large' and job_data['full'] is None:
+        job_data['full'] = pool.apply_async(get_results_messif, args=(
+                                job_data['query'], job_data['radius'], job_data['num_results'], 'full', job_id))
 
-    query = comp_data['query']
-    min_qscore = 1 - comp_data['radius']
+    query = job_data['query']
+    min_qscore = 1 - job_data['radius']
     for chain_id in res_data['chain_ids']:
-        if chain_id not in comp_data['result_stats']:
-            comp_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore))
+        if chain_id not in job_data['result_stats']:
+            job_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore))
 
     statistics = []
     completed = 0
     for chain_id in res_data['chain_ids']:
-        job = comp_data['result_stats'][chain_id]
+        job = job_data['result_stats'][chain_id]
         if job.ready():
             completed += 1
             qscore, rmsd, seq_id, aligned = job.get()
-            if qscore < 1 - comp_data['radius']:
+            if qscore < 1 - job_data['radius']:
                 continue
             statistics.append({'object': chain_id,
                                'qscore': round(qscore, 3),

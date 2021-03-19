@@ -118,8 +118,8 @@ function init_results() {
     const parameters = new URLSearchParams(parameters_string);
 
     let object_params = new URLSearchParams();
-    const comp_id = parameters.get('comp_id');
-    object_params.set('comp_id', comp_id);
+    const job_id = parameters.get('job_id');
+    object_params.set('job_id', job_id);
 
     let statusTable = $('#messif_stats').DataTable({
         ordering: false,
@@ -266,7 +266,7 @@ function init_results() {
                 for (const res of data['statistics']) {
                     let [pdbid, chain] = res['object'].split(':');
                     let details_params = new URLSearchParams();
-                    details_params.set('comp_id', comp_id);
+                    details_params.set('job_id', job_id);
                     details_params.set('object', res['object']);
                     details_params.set('chain', chain);
                     let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
@@ -308,10 +308,10 @@ function init_results() {
 }
 
 
-function load_molecule(plugin, comp_id, object, index) {
+function load_molecule(plugin, job_id, object, index) {
 
     let object_params = new URLSearchParams();
-    object_params.set('comp_id', comp_id);
+    object_params.set('job_id', job_id);
     object_params.set('object', object);
 
     const id = object === '_query' ? 'query' : object;
@@ -355,10 +355,10 @@ function init_details() {
     const parameters_string = window.location.search;
     const parameters = new URLSearchParams(parameters_string);
     const object = parameters.get('object');
-    const comp_id = parameters.get('comp_id');
+    const job_id = parameters.get('job_id');
 
-    load_molecule(plugin, comp_id, '_query', 0);
-    load_molecule(plugin, comp_id, object, 1);
+    load_molecule(plugin, job_id, '_query', 0);
+    load_molecule(plugin, job_id, object, 1);
 }
 
 

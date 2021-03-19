@@ -65,8 +65,8 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
         filename = os.path.join(ARCHIVE_DIR, prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
 
-    comp_id = os.path.basename(tmpdir)[len('query'):]
-    return comp_id, chains
+    job_id = os.path.basename(tmpdir)[len('query'):]
+    return job_id, chains
 
 
 def process_input(req: Request) -> Tuple[str, List[str]]:
@@ -75,24 +75,28 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
     path = os.path.join(tmpdir, 'query')
     req.files['file'].save(path)
 
-    comp_id = os.path.basename(tmpdir)[len('query'):]
+    job_id = os.path.basename(tmpdir)[len('query'):]
     chains = python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir, 'query')
     if not chains:
         raise RuntimeError('No chains having at least 10 residues detected.')
 
     chain_ids, sizes = zip(*chains)
-    return comp_id, list(chain_ids)
+    return job_id, list(chain_ids)
 
 
-def get_results_messif(query: str, radius: float, num_results: int, req_type: str) -> Tuple[List[str], Dict[str, int]]:
+def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) -> Tuple[List[str], Dict[str, int]]:
+    parameters = {'queryid': query, 'k': num_results, 'job_id': job_id}
+    server = 'http://similar-pdb.cerit-sc.cz'
     if req_type == 'sketches_small':
-        url = f'http://147.251.21.141:20009/searchsketches?queryid={query}&k={num_results}'
+        url = f'{server}:20009/searchsketches'
     elif req_type == 'sketches_large':
-        url = f'http://147.251.21.141:20003/searchsketches?queryid={query}&range={radius}&k={num_results}'
+        url = f'{server}:20003/searchsketches'
+        parameters['radius'] = radius
     else:
-        url = f'http://147.251.21.141:20001/search?queryid={query}&range={radius}&k={num_results}'
+        url = f'{server}:20001/search'
+        parameters['radius'] = radius
 
-    req = requests.get(url)
+    req = requests.get(url, params=parameters)
     if req.status_code != 200:
         raise RuntimeError('MESSIF not responding')
 

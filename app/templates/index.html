@@ -135,7 +135,7 @@
         </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('search', comp_id=comp_id) }}">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('search', job_id=job_id) }}">
         <div class="row">
             <div class="col">
                 <div class="card">
@@ -170,18 +170,18 @@
                             <h5 class="card-title">Search settings</h5>
                             <div class="row">
                                 <div class="col">
-                                    <label class="col-form-label" for="qscore-range">Minimum Q-score: </label>
+                                    <label class="col-form-label" for="qscore_range">Minimum Q-score: </label>
                                 </div>
                                 <div class="col">
-                                    <input class="form-control" type="number" name="qscore-range" value="0.5"
-                                           min="0.3" max="1.0" step="0.1" id="qscore-range">
+                                    <input class="form-control" type="number" name="qscore_range" value="0.5"
+                                           min="0.3" max="1.0" step="0.1" id="qscore_range">
                                 </div>
                                 <div class="col">
-                                    <label class="col-form-label" for="num-results">Maximum number of results: </label>
+                                    <label class="col-form-label" for="num_results">Maximum number of results: </label>
                                 </div>
                                 <div class="col">
-                                    <input class="form-control" type="number" name="num-results" value="30"
-                                           min="10" max="200" step="10" id="num-results">
+                                    <input class="form-control" type="number" name="num_results" value="30"
+                                           min="10" max="200" step="10" id="num_results">
                                 </div>
                             </div>
                         </fieldset>
@@ -190,8 +190,8 @@
             </div>
         </div>
 
-        <input type="hidden" name="comp-id" id="comp-id" value="{{ comp_id }}">
-        <input type="hidden" name="input-name" id="input-name" value="{{ input_name }}">
+        <input type="hidden" name="job_id" id="job_id" value="{{ job_id }}">
+        <input type="hidden" name="input_name" id="input_name" value="{{ input_name }}">
         <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
 
         <div class="row pt-4">
