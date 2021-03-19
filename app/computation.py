@@ -148,7 +148,7 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
         if elapsed > 500:
             insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
                            f'(%s, NULL, %s, %s, %s, %s, %s, %s, %s)'
-            matrix_values = ';'.join(str(res[4]))
+            matrix_values = ';'.join(str(x) for x in res[4])
             c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2], matrix_values))
             conn.commit()
     else:
