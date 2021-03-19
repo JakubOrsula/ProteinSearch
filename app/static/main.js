@@ -170,9 +170,9 @@ function init_results() {
                     statusTable.row.add([
                         '<b>Sketches small</b>',
                         '🗸',
-                        small['pivot_dist_count'],
+                        `${small['pivot_dist_count']} (computed: ${small['pivot_dist_count'] - small['pivot_dist_cached']} cached: ${small['pivot_dist_cached']})`,
                         format_time(small['pivot_dist_time']),
-                        small['search_dist_count'],
+                        '-',
                         format_time(small['search_dist_time']),
                         `<b>${format_time(small['pivot_dist_time'] + small['search_dist_time'])}</b>`
                     ]).draw();
@@ -191,9 +191,9 @@ function init_results() {
                     statusTable.row.add([
                         '<b>Sketches large</b>',
                         '🗸',
-                        large['pivot_dist_count'],
+                        `${large['pivot_dist_count']} (computed: ${large['pivot_dist_count'] - large['pivot_dist_cached']} cached: ${large['pivot_dist_cached']})`,
                         format_time(large['pivot_dist_time']),
-                        large['search_dist_count'],
+                        '-',
                         format_time(large['search_dist_time']),
                         `<b>${format_time(large['pivot_dist_time'] + large['search_dist_time'])}</b>`
                     ]).draw();
@@ -212,9 +212,9 @@ function init_results() {
                     statusTable.row.add([
                         '<b>PPP codes + sketches</b>',
                         '🗸',
-                        full['pivot_dist_count'],
+                        `${full['pivot_dist_count']} (computed: ${full['pivot_dist_count'] - full['pivot_dist_cached']} cached: ${full['pivot_dist_cached']})`,
                         format_time(full['pivot_dist_time']),
-                        full['search_dist_count'],
+                        `${full['search_dist_count']} (computed: ${full['search_dist_count'] - (full['all_dist_cached'] - full['pivot_dist_cached'])}, cached: ${full['all_dist_cached'] - full['pivot_dist_cached']})`,
                         format_time(full['search_dist_time'] - full['pivot_dist_time']),
                         `<b>${format_time(full['search_dist_time'])}</b>`
                     ]).draw();
