@@ -132,6 +132,12 @@ def get_searched_pdbs():
     return jsonify(get_names(search_title(query, 1000))), 200
 
 
+@application.route('/get_protein_names', methods=['POST'])
+def get_protein_names():
+    print(request.json)
+    return jsonify(get_names(request.get_json())), 200
+
+
 @application.route('/get_results')
 def get_results():
     comp_id: str = request.args.get('comp_id')

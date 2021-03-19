@@ -96,13 +96,18 @@ function init_index() {
 }
 
 
-function fetch_name(name) {
+function fetch_titles(pdbids) {
     $.ajax({
-        url: `https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/${name}`,
+        url: `/get_protein_names`,
+        data: JSON.stringify(pdbids),
+        type: 'POST',
+        contentType: 'application/json',
+        dataType: 'json',
         success: function (data) {
-            const title = data[name][0]['title'];
-            localStorage[name] = title;
-            $(`.name_${name}`).val(title);
+            for (const [pdbid, title] of Object.entries(data)) {
+                localStorage[pdbid] = title;
+                $(`.name_${pdbid}`).val(title);
+            }
         }
     })
 }
@@ -170,7 +175,7 @@ function init_results() {
                     statusTable.row.add([
                         '<b>Sketches small</b>',
                         '🗸',
-                        `${small['pivot_dist_count']} (computed: ${small['pivot_dist_count'] - small['pivot_dist_cached']} cached: ${small['pivot_dist_cached']})`,
+                        `${small['pivot_dist_count']} (computed: ${small['pivot_dist_count'] - small['pivot_dist_cached']}, cached: ${small['pivot_dist_cached']})`,
                         format_time(small['pivot_dist_time']),
                         '-',
                         format_time(small['search_dist_time']),
@@ -191,7 +196,7 @@ function init_results() {
                     statusTable.row.add([
                         '<b>Sketches large</b>',
                         '🗸',
-                        `${large['pivot_dist_count']} (computed: ${large['pivot_dist_count'] - large['pivot_dist_cached']} cached: ${large['pivot_dist_cached']})`,
+                        `${large['pivot_dist_count']} (computed: ${large['pivot_dist_count'] - large['pivot_dist_cached']}, cached: ${large['pivot_dist_cached']})`,
                         format_time(large['pivot_dist_time']),
                         '-',
                         format_time(large['search_dist_time']),
@@ -212,7 +217,7 @@ function init_results() {
                     statusTable.row.add([
                         '<b>PPP codes + sketches</b>',
                         '🗸',
-                        `${full['pivot_dist_count']} (computed: ${full['pivot_dist_count'] - full['pivot_dist_cached']} cached: ${full['pivot_dist_cached']})`,
+                        `${full['pivot_dist_count']} (computed: ${full['pivot_dist_count'] - full['pivot_dist_cached']}, cached: ${full['pivot_dist_cached']})`,
                         format_time(full['pivot_dist_time']),
                         `${full['search_dist_count']} (computed: ${full['search_dist_count'] - (full['all_dist_cached'] - full['pivot_dist_cached'])}, cached: ${full['all_dist_cached'] - full['pivot_dist_cached']})`,
                         format_time(full['search_dist_time'] - full['pivot_dist_time']),
@@ -246,9 +251,20 @@ function init_results() {
                     resultsTable.row(node).remove().draw();
                 });
 
+                // Get title of proteins
+                let no_titles = []
+                for (const res of data['statistics']) {
+                    const pdbid = res['object'].split(':')[0];
+                    if (localStorage.getItem(pdbid) === null) {
+                        no_titles.push(pdbid);
+                    }
+                }
+                if (no_titles.length) {
+                    fetch_titles(no_titles);
+                }
+
                 for (const res of data['statistics']) {
                     let [pdbid, chain] = res['object'].split(':');
-                    pdbid = pdbid.toLowerCase();
                     let details_params = new URLSearchParams();
                     details_params.set('comp_id', comp_id);
                     details_params.set('object', res['object']);
@@ -278,10 +294,6 @@ function init_results() {
                         resultsTable.row(`[id="${res['object']}"]`).data(data);
                     } else {
                         resultsTable.row.add(data).node().id = res['object'];
-                    }
-
-                    if (localStorage.getItem(pdbid) === null) {
-                        fetch_name(pdbid);
                     }
                     idx++;
                 }
