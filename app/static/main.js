@@ -284,7 +284,7 @@ function init_results() {
                     }
 
                     const data = [idx + 1, res['object'],
-                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank">
+                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank" rel="noreferrer">
                             <div class="name_${pdbid}" style="max-width: 900px">${name}</div>
                         </a>`,
                         qscore, rmsd, aligned, seq_id,
