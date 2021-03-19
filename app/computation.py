@@ -172,6 +172,7 @@ def get_stats(query: str, other: str, min_qscore: float, job_id: str) -> Tuple[f
             other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
             output_png = os.path.join(directory, f'{other}.aligned.png')
             args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb, output_png]
+            subprocess.run(args)
         except:
             print('Cannot generate alignment and image')
     return results[:-1]
