@@ -62,7 +62,7 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
     os.chmod(tmpdir, 0o755)
 
     prefix = pdb_id[:2].lower()
-    shutil.copy(os.path.join(RAW_PDB_DIR, f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
+    shutil.copy(os.path.join(RAW_PDB_DIR, prefix, f'{pdb_id.lower()}_updated.cif'), os.path.join(tmpdir, 'query'))
     for chain in chains:
         filename = os.path.join(ARCHIVE_DIR, prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
@@ -136,7 +136,7 @@ def get_results(query: str, other: str, min_qscore: float) -> Tuple[float, float
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
-    select_query = f'SELECT qscore, rmsd, seqIdentity, alignedResidues FROM queriesNearestNeighboursStats ' \
+    select_query = f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats FROM queriesNearestNeighboursStats ' \
                    f'WHERE queryGesamtId = %s AND nnGesamtId = %s'
     c.execute(select_query, (query, other))
     query_result = c.fetchall()
@@ -147,13 +147,13 @@ def get_results(query: str, other: str, min_qscore: float) -> Tuple[float, float
         elapsed = int((end - begin) * 1000)
         if elapsed > 500:
             insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
-                           f'(%s, NULL, %s, %s, %s, %s, %s, %s)'
-            c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2]))
+                           f'(%s, NULL, %s, %s, %s, %s, %s, %s, %s)'
+            matrix_values = ';'.join(res[4])
+            c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2], matrix_values))
             conn.commit()
     else:
-        # TODO read matrix T
-        matrix_T = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-        res = [*query_result[0], matrix_T]
+        matrix = [float(x) for x in query_result[0][-1].split(';')]
+        res = [*query_result[0][:-1], matrix]
     c.close()
     conn.close()
     return res
@@ -172,7 +172,6 @@ def get_stats(query: str, other: str, min_qscore: float, job_id: str) -> Tuple[f
             other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
             output_png = os.path.join(directory, f'{other}.aligned.png')
             args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb, output_png]
-            ret = subprocess.run(args)
         except:
             print('Cannot generate alignment and image')
     return results[:-1]
