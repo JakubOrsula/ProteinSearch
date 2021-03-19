@@ -132,7 +132,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     return chain_ids, statistics
 
 
-def get_results(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int, List[float]]:
+def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int, List[float]]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
@@ -148,7 +148,7 @@ def get_results(query: str, other: str, min_qscore: float) -> Tuple[float, float
         if elapsed > 500:
             insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
                            f'(%s, NULL, %s, %s, %s, %s, %s, %s, %s)'
-            matrix_values = ';'.join(res[4])
+            matrix_values = ';'.join(str(res[4]))
             c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2], matrix_values))
             conn.commit()
     else:
@@ -160,7 +160,7 @@ def get_results(query: str, other: str, min_qscore: float) -> Tuple[float, float
 
 
 def get_stats(query: str, other: str, min_qscore: float, job_id: str) -> Tuple[float, float, float, int]:
-    results = get_results(query, other, min_qscore)
+    results = get_similarity_results(query, other, min_qscore)
     matrix_T = results[-1]
 
     directory = os.path.join(COMPUTATIONS_DIR, f'query{job_id}')
