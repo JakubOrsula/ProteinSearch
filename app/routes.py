@@ -84,6 +84,7 @@ def search():
         flash('Calculation failed')
         return render_template('index.html')
 
+    python_distance.prepare_PDB(query, RAW_PDB_DIR, os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), None)
     return redirect(url_for('results', job_id=job_id, chain=chain, name=name))
 
 
@@ -98,12 +99,8 @@ def results():
 
 @application.route('/details')
 def get_details():
-    job_id: str = request.args.get('job_id')
     chain: str = request.args.get('chain')
     obj: str = request.args.get('object')
-
-    python_distance.prepare_aligned_PDBs(f'_{job_id}:{chain}', obj, RAW_PDB_DIR,
-                                         os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
 
     return render_template('details.html', object=obj, query_chain=chain)
 
@@ -133,8 +130,15 @@ def get_searched_pdbs():
 
 @application.route('/get_protein_names', methods=['POST'])
 def get_protein_names():
-    print(request.json)
     return jsonify(get_names(request.get_json())), 200
+
+
+@application.route('/get_image')
+def get_image():
+    job_id: str = request.args.get('job_id')
+    obj: str = request.args.get('object')
+
+    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), f'{obj}.aligned.png', cache_timeout=0)
 
 
 @application.route('/get_results')
@@ -175,7 +179,7 @@ def get_results():
     min_qscore = 1 - job_data['radius']
     for chain_id in res_data['chain_ids']:
         if chain_id not in job_data['result_stats']:
-            job_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore))
+            job_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore, job_id))
 
     statistics = []
     completed = 0

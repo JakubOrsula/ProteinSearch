@@ -5,6 +5,8 @@ import requests
 import json
 import mariadb
 import time
+import subprocess
+
 
 from flask import Request
 from typing import List, Tuple, Dict
@@ -130,7 +132,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     return chain_ids, statistics
 
 
-def get_stats(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int]:
+def get_results(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int, List[float]]:
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
@@ -149,7 +151,29 @@ def get_stats(query: str, other: str, min_qscore: float) -> Tuple[float, float, 
             c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2]))
             conn.commit()
     else:
-        res = query_result[0]
+        # TODO read matrix T
+        matrix_T = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+        res = [*query_result[0], matrix_T]
     c.close()
     conn.close()
     return res
+
+
+def get_stats(query: str, other: str, min_qscore: float, job_id: str) -> Tuple[float, float, float, int]:
+    results = get_results(query, other, min_qscore)
+    matrix_T = results[-1]
+
+    directory = os.path.join(COMPUTATIONS_DIR, f'query{job_id}')
+
+    if results[0] > min_qscore:
+        try:
+            python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, matrix_T)
+            query_pdb = os.path.join(directory, 'query.pdb')
+            other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
+            output_png = os.path.join(directory, f'{other}.aligned.png')
+            args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb, output_png]
+            ret = subprocess.run(args)
+        except:
+            print('Cannot generate alignment and image')
+    return results[:-1]
+

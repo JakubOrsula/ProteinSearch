@@ -275,12 +275,17 @@ function init_results() {
                     let rmsd = '?';
                     let aligned = '?';
                     let seq_id = '?';
+                    let link = 'N/A';
 
                     if (res['qscore'] !== -1) {
                         qscore = res['qscore'].toFixed(3);
                         rmsd = res['rmsd'].toFixed(3);
                         aligned = res['aligned'];
                         seq_id = res['seq_id'].toFixed(3);
+                        link = `<a href="/details?${details_params.toString()}" target="_blank">
+                                <img src="/get_image?job_id=${job_id}&object=${res['object']}"
+                                     alt="Alignment thumbnail of ${res['object']}">
+                                </a>`;
                     }
 
                     const data = [idx + 1, res['object'],
@@ -288,7 +293,7 @@ function init_results() {
                             <div class="name_${pdbid}" style="max-width: 900px">${name}</div>
                         </a>`,
                         qscore, rmsd, aligned, seq_id,
-                        `<a href="/details?${details_params.toString()}" target="_blank">Show</a>`];
+                        link];
 
                     if ($(`[id="${res['object']}"]`).length) {
                         resultsTable.row(`[id="${res['object']}"]`).data(data);
