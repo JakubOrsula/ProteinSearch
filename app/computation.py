@@ -62,7 +62,7 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
     os.chmod(tmpdir, 0o755)
 
     prefix = pdb_id[:2].lower()
-    shutil.copy(os.path.join(RAW_PDB_DIR, prefix, f'{pdb_id.lower()}_updated.cif'), os.path.join(tmpdir, 'query'))
+    shutil.copy(os.path.join(RAW_PDB_DIR, f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
     for chain in chains:
         filename = os.path.join(ARCHIVE_DIR, prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
