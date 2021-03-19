@@ -54,7 +54,7 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
     c.close()
     conn.close()
     if not chains:
-        raise RuntimeError('No protein chains detected.')
+        raise RuntimeError('No chains having at least 10 residues detected.')
 
     tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
     os.chmod(tmpdir, 0o755)
@@ -77,6 +77,9 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
 
     comp_id = os.path.basename(tmpdir)[len('query'):]
     chains = python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir, 'query')
+    if not chains:
+        raise RuntimeError('No chains having at least 10 residues detected.')
+
     chain_ids, sizes = zip(*chains)
     return comp_id, list(chain_ids)
 

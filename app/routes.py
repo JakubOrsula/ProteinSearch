@@ -35,7 +35,7 @@ def index():
             flash(f'Internal error: {e}')
             return render_template('index.html')
         except FileNotFoundError:
-            flash('Internal error: Required source file not found')
+            flash('Internal error: Required source file not found.')
             return render_template('index.html')
 
         name = get_names([pdb_id])[pdb_id]
@@ -44,12 +44,8 @@ def index():
     elif 'upload' in request.form:
         try:
             comp_id, ids = process_input(request)
-        except RuntimeError:
-            flash('Cannot process file')
-            return render_template('index.html')
-
-        if not ids:
-            flash('No chains detected')
+        except RuntimeError as e:
+            flash(e)
             return render_template('index.html')
 
         filename = request.files['file'].filename

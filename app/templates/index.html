@@ -7,7 +7,6 @@
     <title>Protein Chain Similarity Search</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-
     <style>
         .list-group-item {
             padding: 0.5rem 0.5rem;
@@ -142,8 +141,8 @@
                 <div class="card">
                     <div class="card-body">
                         <fieldset id="fs-chains" {% if not selected %} disabled {% endif %}>
-                            <h5 class="card-title">Detected chains {% if selected %} for
-                                <b>{{ input_name }} </b>{% endif %} </h5>
+                            <h5 class="card-title">Detected chains {% if selected %} of
+                                <b>{{ input_name }} </b> having at least 10 residues {% endif %} </h5>
                             <p class="card-text"> {% if name is defined %} {{ name }} {% endif %} </p>
                             <div class="row pb-2">
                                 <div class="col-2">
