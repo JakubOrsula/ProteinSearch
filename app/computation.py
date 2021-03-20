@@ -7,7 +7,6 @@ import mariadb
 import time
 import subprocess
 
-
 from flask import Request
 from typing import List, Tuple, Dict
 
@@ -86,7 +85,8 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
     return job_id, list(chain_ids)
 
 
-def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) -> Tuple[List[str], Dict[str, int]]:
+def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) \
+                            -> Tuple[List[str], Dict[str, int]]:
     parameters = {'queryid': query, 'k': num_results, 'job_id': job_id}
     server = 'http://similar-pdb.cerit-sc.cz'
     if req_type == 'sketches_small':
@@ -136,44 +136,47 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
     conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
-    select_query = f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats FROM queriesNearestNeighboursStats ' \
-                   f'WHERE queryGesamtId = %s AND nnGesamtId = %s'
+    select_query = (f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats '
+                    f'FROM queriesNearestNeighboursStats WHERE queryGesamtId = %s AND nnGesamtId = %s')
     c.execute(select_query, (query, other))
+    print(c._last_executed)
     query_result = c.fetchall()
     if not query_result:
         begin = time.time()
-        _, *res = python_distance.get_results(query, other, ARCHIVE_DIR, min_qscore)
+        _, qscore, rmsd, seq_identity, aligned, T = python_distance.get_results(query, other, ARCHIVE_DIR, min_qscore)
         end = time.time()
         elapsed = int((end - begin) * 1000)
+        results = (qscore, rmsd, seq_identity, aligned, T)
         if elapsed > 500:
-            insert_query = f'INSERT IGNORE INTO queriesNearestNeighboursStats VALUES' \
-                           f'(%s, NULL, %s, %s, %s, %s, %s, %s, %s)'
-            matrix_values = ';'.join(str(x) for x in res[4])
-            c.execute(insert_query, (elapsed, query, other, res[0], res[1], res[3], res[2], matrix_values))
+            insert_query = (f'INSERT IGNORE INTO queriesNearestNeighboursStats '
+                            f'(evaluationTime, queryGesamtId, nnGesamtId,'
+                            f' qscore, rmsd, alignedResidues, seqIdentity, rotationStats) '
+                            f'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
+            T_str = ';'.join(f'{x:.3f}' for x in T)
+            c.execute(insert_query, (elapsed, query, other, qscore, rmsd, aligned, seq_identity, T_str))
+            print(c._last_executed)
             conn.commit()
     else:
-        matrix = [float(x) for x in query_result[0][-1].split(';')]
-        res = [*query_result[0][:-1], matrix]
+        qscore, rmsd, seq_identity, aligned, T = query_result[0]
+        T = [float(x) for x in query_result[-1].split(';')]
+        results = float(qscore), float(rmsd), float(seq_identity), int(aligned), T
     c.close()
     conn.close()
-    return res
+    return results
 
 
 def get_stats(query: str, other: str, min_qscore: float, job_id: str) -> Tuple[float, float, float, int]:
-    results = get_similarity_results(query, other, min_qscore)
-    matrix_T = results[-1]
-
+    qscore, rmsd, seq_identity, aligned, T = get_similarity_results(query, other, min_qscore)
     directory = os.path.join(COMPUTATIONS_DIR, f'query{job_id}')
-
-    if results[0] > min_qscore:
+    if qscore > min_qscore:
         try:
-            python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, matrix_T)
+            python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, T)
             query_pdb = os.path.join(directory, 'query.pdb')
             other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
             output_png = os.path.join(directory, f'{other}.aligned.png')
-            args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb, output_png]
+            args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb,
+                    output_png]
             subprocess.run(args)
         except:
             print('Cannot generate alignment and image')
-    return results[:-1]
-
+    return qscore, rmsd, seq_identity, aligned
