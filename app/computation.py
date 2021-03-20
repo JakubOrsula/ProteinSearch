@@ -86,7 +86,7 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
 
 
 def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) \
-                            -> Tuple[List[str], Dict[str, int]]:
+        -> Tuple[List[str], Dict[str, int]]:
     parameters = {'queryid': query, 'k': num_results, 'job_id': job_id}
     server = 'http://similar-pdb.cerit-sc.cz'
     if req_type == 'sketches_small':
@@ -110,12 +110,12 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     messif_ids = [int(record['_id']) for record in response['answer_records']]
 
     statistics = {
-        'pivot_dist_time': response['query_record']['pivotDistTimes'],
-        'pivot_dist_count': response['query_record']['pivotDistCount'],
-        'pivot_dist_cached': response['query_record']['CachedPivotsDists'],
-        'all_dist_cached': response['query_record']['CachedDistsTotal'],
-        'search_dist_time': response['statistics']['OperationTime'],
-        'search_dist_count': response['statistics']['DistanceComputations']
+        'pivotDistCountTotal': 0,
+        'pivotDistCountCached': 0,
+        'pivotTime': 0,
+        'searchDistCountTotal': 0,
+        'searchDistCountCached': 0,
+        'searchTime': 0,
     }
 
     if not messif_ids:

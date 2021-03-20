@@ -175,11 +175,11 @@ function init_results() {
                     statusTable.row.add([
                         '<b>Sketches small</b>',
                         '🗸',
-                        `${small['pivot_dist_count']} (computed: ${small['pivot_dist_count'] - small['pivot_dist_cached']}, cached: ${small['pivot_dist_cached']})`,
-                        format_time(small['pivot_dist_time']),
+                        `${small['pivotDistCountTotal']} (computed: ${small['pivotDistCountTotal'] - small['pivotDistCountCached']}, cached: ${small['pivotDistCountCached']})`,
+                        format_time(small['pivotTime']),
                         '-',
-                        format_time(small['search_dist_time']),
-                        `<b>${format_time(small['pivot_dist_time'] + small['search_dist_time'])}</b>`
+                        format_time(small['searchTime']),
+                        `<b>${format_time(small['pivotTime'] + small['searchTime'])}</b>`
                     ]).draw();
                 } else {
                     statusTable.row.add([
@@ -196,11 +196,11 @@ function init_results() {
                     statusTable.row.add([
                         '<b>Sketches large</b>',
                         '🗸',
-                        `${large['pivot_dist_count']} (computed: ${large['pivot_dist_count'] - large['pivot_dist_cached']}, cached: ${large['pivot_dist_cached']})`,
-                        format_time(large['pivot_dist_time']),
+                        `${large['pivotDistCountTotal']} (computed: ${large['pivotDistCountTotal'] - large['pivotDistCountCached']}, cached: ${large['pivotDistCountCached']})`,
+                        format_time(large['pivotTime']),
                         '-',
-                        format_time(large['search_dist_time']),
-                        `<b>${format_time(large['pivot_dist_time'] + large['search_dist_time'])}</b>`
+                        format_time(large['searchTime']),
+                        `<b>${format_time(large['pivotTime'] + large['searchTime'])}</b>`
                     ]).draw();
                 } else {
                     statusTable.row.add([
@@ -217,11 +217,11 @@ function init_results() {
                     statusTable.row.add([
                         '<b>PPP codes + sketches</b>',
                         '🗸',
-                        `${full['pivot_dist_count']} (computed: ${full['pivot_dist_count'] - full['pivot_dist_cached']}, cached: ${full['pivot_dist_cached']})`,
-                        format_time(full['pivot_dist_time']),
-                        `${full['search_dist_count']} (computed: ${full['search_dist_count'] - (full['all_dist_cached'] - full['pivot_dist_cached'])}, cached: ${full['all_dist_cached'] - full['pivot_dist_cached']})`,
-                        format_time(full['search_dist_time'] - full['pivot_dist_time']),
-                        `<b>${format_time(full['search_dist_time'])}</b>`
+                        `${full['pivotDistCountTotal']} (computed: ${full['pivotDistCountTotal'] - full['pivotDistCountCached']}, cached: ${full['pivotDistCountCached']})`,
+                        format_time(full['pivotTime']),
+                        `${full['searchDistCountTotal']} (computed: ${full['searchDistCountTotal'] - full['searchDistCountCached']}, cached: ${full['searchDistCountCached']})`,
+                        format_time(full['searchTime']),
+                        `<b>${format_time(full['pivotTime'] + full['searchTime'])}</b>`
                     ]).draw();
                 } else {
                     statusTable.row.add([
