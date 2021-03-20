@@ -166,7 +166,7 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
             conn.commit()
     else:
         qscore, rmsd, seq_identity, aligned, T = query_result[0]
-        T = [float(x) for x in query_result[-1].split(';')]
+        T = [float(x) for x in T.split(';')]
         results = float(qscore), float(rmsd), float(seq_identity), int(aligned), T
     c.close()
     conn.close()
