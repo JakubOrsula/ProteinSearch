@@ -109,14 +109,24 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
 
     messif_ids = [int(record['_id']) for record in response['answer_records']]
 
-    statistics = {
-        'pivotDistCountTotal': 0,
-        'pivotDistCountCached': 0,
-        'pivotTime': 0,
-        'searchDistCountTotal': 0,
-        'searchDistCountCached': 0,
-        'searchTime': 0,
-    }
+    if req_type in ['sketches_small', 'sketches_large']:
+        statistics = {
+            'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
+            'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
+            'pivotTime': response['query_record']['pivotDistTimes'],
+            'searchDistCountTotal': 0,
+            'searchDistCountCached': 0,
+            'searchTime': response['statistics']['OperationTime'],
+        }
+    else:
+        statistics = {
+            'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
+            'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
+            'pivotTime': response['query_record']['pivotDistTimes'],
+            'searchDistCountTotal': response['statistics']['DistanceComputations'],
+            'searchDistCountCached': response['query_record']['searchDistCountCached'],
+            'searchTime': response['statistics']['OperationTime'],
+        }
 
     if not messif_ids:
         return [], statistics
