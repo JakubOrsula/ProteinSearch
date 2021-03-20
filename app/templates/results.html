@@ -12,14 +12,27 @@
         html, body, .container-fluid {
             height: 100%;
         }
-
         #resize_wrapper {
             position: relative;
             height: 93%;
         }
-
         .dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody {
             overflow-y: scroll !important;
+        }
+        img {
+            width: 100px;
+            height: 100px;
+        }
+        tbody .small_padding {
+            padding: 5px !important;
+        }
+        .zoom {
+            transition: transform .2s;
+        }
+        .zoom:hover {
+            transform: scale(4) translate(-37%, 37%);
+            border: 1px solid grey;
+            background: white;
         }
     </style>
 </head>

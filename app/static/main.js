@@ -147,7 +147,7 @@ function init_results() {
             {title: 'RMSD', width: '80px'},
             {title: 'Aligned res.', width: '100px'},
             {title: 'Seq. identity', width: '100px'},
-            {title: 'Alignment', 'searchable': false, 'orderable': false, width: '80px'},
+            {title: 'Alignment', 'searchable': false, 'orderable': false, width: '100px', className: 'small_padding'},
         ],
         searching: false,
         paging: false,
@@ -306,6 +306,8 @@ function init_results() {
 
                 if (phases_done !== 3 || data['status'] !== 'FINISHED') {
                     setTimeout(worker, 500);
+                } else {
+                    $('tbody img').addClass('zoom');
                 }
             }
         });
