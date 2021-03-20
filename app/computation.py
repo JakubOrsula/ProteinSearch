@@ -139,7 +139,6 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
     select_query = (f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats '
                     f'FROM queriesNearestNeighboursStats WHERE queryGesamtId = %s AND nnGesamtId = %s')
     c.execute(select_query, (query, other))
-    print(c._last_executed)
     query_result = c.fetchall()
     if not query_result:
         begin = time.time()
@@ -154,7 +153,6 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
                             f'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
             T_str = ';'.join(f'{x:.3f}' for x in T)
             c.execute(insert_query, (elapsed, query, other, qscore, rmsd, aligned, seq_identity, T_str))
-            print(c._last_executed)
             conn.commit()
     else:
         qscore, rmsd, seq_identity, aligned, T = query_result[0]
