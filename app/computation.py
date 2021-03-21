@@ -160,7 +160,7 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
         end = time.time()
         elapsed = int((end - begin) * 1000)
         results = (qscore, rmsd, seq_identity, aligned, T)
-        if elapsed > 500:
+        if elapsed > 30:
             insert_query = (f'INSERT IGNORE INTO queriesNearestNeighboursStats '
                             f'(evaluationTime, queryGesamtId, nnGesamtId,'
                             f' qscore, rmsd, alignedResidues, seqIdentity, rotationStats) '
