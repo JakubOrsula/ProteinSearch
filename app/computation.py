@@ -88,16 +88,16 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
 def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) \
         -> Tuple[List[str], Dict[str, int]]:
     parameters = {'queryid': query, 'k': num_results, 'job_id': job_id}
-    server = 'http://similar-pdb.cerit-sc.cz'
     if req_type == 'sketches_small':
-        url = f'{server}:20009/searchsketches'
+        port = 20009
     elif req_type == 'sketches_large':
-        url = f'{server}:20003/searchsketches'
+        port = 20003
         parameters['radius'] = radius
     else:
-        url = f'{server}:20001/search'
+        port = 20001
         parameters['radius'] = radius
 
+    url = f'http://similar-pdb.cerit-sc.cz:{port}/search'
     try:
         req = requests.get(url, params=parameters)
     except requests.exceptions.RequestException:
