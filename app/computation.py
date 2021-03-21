@@ -124,7 +124,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
             'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
             'pivotTime': response['query_record']['pivotDistTimes'],
             'searchDistCountTotal': response['statistics']['DistanceComputations'],
-            'searchDistCountCached': response['query_record']['searchDistCountCached'],
+            'searchDistCountCached': response['statistics']['DistanceComputations.Savings'],
             'searchTime': response['statistics']['OperationTime'] - response['query_record']['pivotDistTimes'],
         }
 
