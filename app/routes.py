@@ -147,33 +147,54 @@ def get_results():
 
     job_data = computation_results[job_id]
 
-    res_data = {'chain_ids': [], 'phase': 'none'}
+    res_data = {'chain_ids': [],
+                'sketches_small_status': 'COMPUTING',
+                'sketches_large_status': 'WAITING',
+                'full_status': 'WAITING'}
 
     sketches_small = job_data['sketches_small']
     if sketches_small.ready():
-        res_data['chain_ids'], stats = sketches_small.get()
-        res_data['phase'] = 'sketches_small'
-        res_data['sketches_small_statistics'] = stats
+        try:
+            res_data['chain_ids'], stats = sketches_small.get()
+            res_data['sketches_small_statistics'] = stats
+
+            res_data['sketches_small_status'] = 'DONE'
+            res_data['sketches_large_status'] = 'COMPUTING'
+
+            if job_data['sketches_large'] is None:
+                job_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
+                    job_data['query'], job_data['radius'], job_data['num_results'], 'sketches_large', job_id))
+
+        except RuntimeError as e:
+            res_data['sketches_small_status'] = 'ERROR'
+            res_data['error_message'] = str(e)
 
         sketches_large = job_data['sketches_large']
         if sketches_large is not None and sketches_large.ready():
-            res_data['chain_ids'], stats = sketches_large.get()
-            res_data['phase'] = 'sketches_large'
-            res_data['sketches_large_statistics'] = stats
+            try:
+                res_data['chain_ids'], stats = sketches_large.get()
+                res_data['sketches_large_statistics'] = stats
+
+                res_data['sketches_large_status'] = 'DONE'
+                res_data['full_status'] = 'COMPUTING'
+
+                if job_data['full'] is None:
+                    job_data['full'] = pool.apply_async(get_results_messif, args=(
+                        job_data['query'], job_data['radius'], job_data['num_results'], 'full', job_id))
+
+            except RuntimeError as e:
+                res_data['sketches_large_status'] = 'ERROR'
+                res_data['error_message'] = str(e)
 
             full = job_data['full']
             if full is not None and full.ready():
-                res_data['chain_ids'], stats = full.get()
-                res_data['phase'] = 'full'
-                res_data['full_statistics'] = stats
-
-    if res_data['phase'] == 'sketches_small' and job_data['sketches_large'] is None:
-        job_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
-                                job_data['query'], job_data['radius'], job_data['num_results'], 'sketches_large', job_id))
-
-    if res_data['phase'] == 'sketches_large' and job_data['full'] is None:
-        job_data['full'] = pool.apply_async(get_results_messif, args=(
-                                job_data['query'], job_data['radius'], job_data['num_results'], 'full', job_id))
+                try:
+                    res_data['chain_ids'], stats = full.get()
+                    res_data['full_status'] = 'DONE'
+                    res_data['full_statistics'] = stats
+                except RuntimeError as e:
+                    res_data['full_status'] = 'ERROR'
+                    res_data['error_message'] = str(e)
 
     query = job_data['query']
     min_qscore = 1 - job_data['radius']
@@ -208,7 +229,7 @@ def get_results():
     res_data['statistics'] = statistics
     res_data['completed'] = completed
     res_data['total'] = len(res_data['chain_ids'])
-    if res_data['phase'] == 'full' and completed == len(res_data['chain_ids']):
+    if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
         res_data['status'] = 'FINISHED'
     else:
         res_data['status'] = 'COMPUTING'

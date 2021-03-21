@@ -174,67 +174,65 @@ function init_results() {
                 statusTable.clear().draw();
                 let phases_done = 0;
                 let last_phase = '';
-                if (data.hasOwnProperty('sketches_small_statistics')) {
-                    last_phase = 'sketches_small';
-                    phases_done++;
-                    const small = data['sketches_small_statistics'];
-                    statusTable.row.add([
-                        '<b>Sketches small</b>',
-                        '🗸',
-                        `${small['pivotDistCountTotal']} (computed: ${small['pivotDistCountTotal'] - small['pivotDistCountCached']}, cached: ${small['pivotDistCountCached']})`,
-                        format_time(small['pivotTime']),
-                        '-',
-                        format_time(small['searchTime']),
-                        `<b>${format_time(small['pivotTime'] + small['searchTime'])}</b>`
-                    ]).draw();
-                } else {
-                    statusTable.row.add([
-                        '<b>Sketches small</b>',
-                        '<div class="spinner-border spinner-border-sm" role="status"></div>',
-                        '', '', '', '', ''
-                    ]).draw();
+
+                const phase_names = {
+                    sketches_small: 'Small sketches',
+                    sketches_large: 'Large sketches',
+                    full: 'PPP codes + sketches'
+                };
+
+                let all_ok = true;
+                for (const phase of ['sketches_small', 'sketches_large', 'full']) {
+                    const status = data[`${phase}_status`];
+                    if (status === 'DONE') {
+                        last_phase = phase;
+                        phases_done++;
+                        const stats = data[`${phase}_statistics`];
+
+                        let search_part = ''
+                        if (phase === 'full') {
+                            search_part = `${stats['searchDistCountTotal']} (computed:
+                                            ${stats['searchDistCountTotal'] - stats['searchDistCountCached']}, 
+                                            cached: ${stats['searchDistCountCached']})`;
+                        } else {
+                            search_part = '-';
+                        }
+                        statusTable.row.add([
+                            `<b>${phase_names[phase]}</b>`,
+                            '🗸',
+                            `${stats['pivotDistCountTotal']} (computed: 
+                                ${stats['pivotDistCountTotal'] - stats['pivotDistCountCached']}, 
+                                cached: ${stats['pivotDistCountCached']})`,
+                            format_time(stats['pivotTime']),
+                            search_part,
+                            format_time(stats['searchTime']),
+                            `<b>${format_time(stats['pivotTime'] + stats['searchTime'])}</b>`
+                        ]).draw();
+                    } else if (status === 'COMPUTING') {
+                        statusTable.row.add([
+                            `<b>${phase_names[phase]}</b>`,
+                            '<div class="spinner-border spinner-border-sm" role="status" />', '',
+                            '', '', '', ''
+                        ]).draw();
+                    } else if (status === 'WAITING') {
+                        statusTable.row.add([
+                            `<b>${phase_names[phase]}</b>`,
+                            '?', '',
+                            '', '', '', ''
+                        ]).draw();
+                    } else {
+                        // Error occurred
+                        statusTable.row.add([
+                            `<b>${phase_names[phase]}</b>`,
+                            '×', `<span class="text-danger">Error: ${data['error_message']}</span>`,
+                            '', `<span class="text-danger">Search aborted</span>`, '', ''
+                        ]).draw();
+                        all_ok = false;
+                    }
                 }
 
-                if (data.hasOwnProperty('sketches_large_statistics')) {
-                    last_phase = 'sketches_large';
-                    phases_done++;
-                    const large = data['sketches_large_statistics'];
-                    statusTable.row.add([
-                        '<b>Sketches large</b>',
-                        '🗸',
-                        `${large['pivotDistCountTotal']} (computed: ${large['pivotDistCountTotal'] - large['pivotDistCountCached']}, cached: ${large['pivotDistCountCached']})`,
-                        format_time(large['pivotTime']),
-                        '-',
-                        format_time(large['searchTime']),
-                        `<b>${format_time(large['pivotTime'] + large['searchTime'])}</b>`
-                    ]).draw();
-                } else {
-                    statusTable.row.add([
-                        '<b>Sketches large</b>',
-                        '<div class="spinner-border spinner-border-sm" role="status"></div>',
-                        '', '', '', '', ''
-                    ]).draw();
-                }
-
-                if (data.hasOwnProperty('full_statistics')) {
-                    last_phase = 'full';
-                    phases_done++;
-                    const full = data['full_statistics'];
-                    statusTable.row.add([
-                        '<b>PPP codes + sketches</b>',
-                        '🗸',
-                        `${full['pivotDistCountTotal']} (computed: ${full['pivotDistCountTotal'] - full['pivotDistCountCached']}, cached: ${full['pivotDistCountCached']})`,
-                        format_time(full['pivotTime']),
-                        `${full['searchDistCountTotal']} (computed: ${full['searchDistCountTotal'] - full['searchDistCountCached']}, cached: ${full['searchDistCountCached']})`,
-                        format_time(full['searchTime']),
-                        `<b>${format_time(full['pivotTime'] + full['searchTime'])}</b>`
-                    ]).draw();
-                } else {
-                    statusTable.row.add([
-                        '<b>PPP codes + sketches</b>',
-                        '<div class="spinner-border spinner-border-sm" role="status"></div>',
-                        '', '', '', '', ''
-                    ]).draw();
+                if (!all_ok) {
+                    return;
                 }
 
                 let $displayed_phase = $('#displayed_phase');
