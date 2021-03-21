@@ -147,7 +147,13 @@ function init_results() {
             {title: 'RMSD', width: '80px'},
             {title: 'Aligned res.', width: '100px'},
             {title: 'Seq. identity', width: '100px'},
-            {title: 'Alignment', 'searchable': false, 'orderable': false, width: '100px', className: 'small_padding'},
+            {
+                title: 'Alignment',
+                'searchable': false,
+                'orderable': false,
+                width: '100px',
+                className: 'small_padding zoom'
+            },
         ],
         searching: false,
         paging: false,
@@ -283,6 +289,7 @@ function init_results() {
                         aligned = res['aligned'];
                         seq_id = res['seq_id'].toFixed(3);
                         link = `<a href="/details?${details_params.toString()}" target="_blank">
+                                <div class="zoom-text">Show 3D visualization</div>
                                 <img src="/get_image?job_id=${job_id}&object=${res['object']}"
                                      alt="Alignment thumbnail of ${res['object']}">
                                 </a>`;
@@ -306,8 +313,6 @@ function init_results() {
 
                 if (phases_done !== 3 || data['status'] !== 'FINISHED') {
                     setTimeout(worker, 500);
-                } else {
-                    $('tbody img').addClass('zoom');
                 }
             }
         });
