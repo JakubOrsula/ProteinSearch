@@ -166,155 +166,119 @@ function init_results() {
         }
     });
 
-    (function worker() {
-        $.ajax({
-            url: `/get_results?${object_params.toString()}`,
-            success: function (data) {
-                let idx = 0;
-                statusTable.clear().draw();
-                let phases_done = 0;
-                let last_phase = '';
+    const eventSource = new EventSource(`/get_results_stream?${object_params.toString()}`);
+    eventSource.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        if (['FINISHED', 'ERROR'].includes(data['status'])) {
+            eventSource.close();
+        }
 
-                const phase_names = {
-                    sketches_small: 'Small sketches',
-                    sketches_large: 'Large sketches',
-                    full: 'PPP codes + sketches'
-                };
+        let idx = 0;
+        statusTable.clear().draw();
+        resultsTable.clear().draw();
 
-                let all_ok = true;
-                for (const phase of ['sketches_small', 'sketches_large', 'full']) {
-                    const status = data[`${phase}_status`];
-                    if (status === 'DONE') {
-                        last_phase = phase;
-                        phases_done++;
-                        const stats = data[`${phase}_statistics`];
+        const phase_names = {
+            sketches_small: 'Small sketches',
+            sketches_large: 'Large sketches',
+            full: 'PPP codes + sketches'
+        };
 
-                        let search_part = ''
-                        if (phase === 'full') {
-                            search_part = `${stats['searchDistCountTotal']} (computed:
+        for (const phase of ['sketches_small', 'sketches_large', 'full']) {
+            const status = data[`${phase}_status`];
+            if (status === 'DONE') {
+                const stats = data[`${phase}_statistics`];
+
+                let search_part = ''
+                if (phase === 'full') {
+                    search_part = `${stats['searchDistCountTotal']} (computed:
                                             ${stats['searchDistCountTotal'] - stats['searchDistCountCached']}, 
                                             cached: ${stats['searchDistCountCached']})`;
-                        } else {
-                            search_part = '-';
-                        }
-                        statusTable.row.add([
-                            `<b>${phase_names[phase]}</b>`,
-                            '🗸',
-                            `${stats['pivotDistCountTotal']} (computed: 
+                } else {
+                    search_part = '-';
+                }
+                statusTable.row.add([
+                    `<b>${phase_names[phase]}</b>`,
+                    '🗸',
+                    `${stats['pivotDistCountTotal']} (computed: 
                                 ${stats['pivotDistCountTotal'] - stats['pivotDistCountCached']}, 
                                 cached: ${stats['pivotDistCountCached']})`,
-                            format_time(stats['pivotTime']),
-                            search_part,
-                            format_time(stats['searchTime']),
-                            `<b>${format_time(stats['pivotTime'] + stats['searchTime'])}</b>`
-                        ]).draw();
-                    } else if (status === 'COMPUTING') {
-                        statusTable.row.add([
-                            `<b>${phase_names[phase]}</b>`,
-                            '<div class="spinner-border spinner-border-sm" role="status" />', '',
-                            '', '', '', ''
-                        ]).draw();
-                    } else if (status === 'WAITING') {
-                        statusTable.row.add([
-                            `<b>${phase_names[phase]}</b>`,
-                            '?', '',
-                            '', '', '', ''
-                        ]).draw();
-                    } else {
-                        // Error occurred
-                        statusTable.row.add([
-                            `<b>${phase_names[phase]}</b>`,
-                            '×', `<span class="text-danger">Error: ${data['error_message']}</span>`,
-                            '', `<span class="text-danger">Search aborted</span>`, '', ''
-                        ]).draw();
-                        all_ok = false;
-                    }
-                }
+                    format_time(stats['pivotTime']),
+                    search_part,
+                    format_time(stats['searchTime']),
+                    `<b>${format_time(stats['pivotTime'] + stats['searchTime'])}</b>`
+                ]).draw();
+            } else if (status === 'COMPUTING') {
+                statusTable.row.add([
+                    `<b>${phase_names[phase]}</b>`,
+                    '<div class="spinner-border spinner-border-sm" role="status" />', '',
+                    '', '', '', ''
+                ]).draw();
+            } else if (status === 'WAITING') {
+                statusTable.row.add([
+                    `<b>${phase_names[phase]}</b>`,
+                    '?', '',
+                    '', '', '', ''
+                ]).draw();
+            } else {
+                // Error occurred
+                statusTable.row.add([
+                    `<b>${phase_names[phase]}</b>`,
+                    '×', `<span class="text-danger">Error: ${data['error_message']}</span>`,
+                    '', `<span class="text-danger">Search aborted</span>`, '', ''
+                ]).draw();
+            }
+        }
 
-                if (!all_ok) {
-                    return;
-                }
+        statusTable.columns.adjust().draw();
 
-                let $displayed_phase = $('#displayed_phase');
-                const displayed_phase = $displayed_phase.val();
-                if (last_phase !== displayed_phase) {
-                    resultsTable.clear().draw();
-                    $displayed_phase.val(last_phase);
-                }
+        // Get title of proteins
+        let no_titles = []
+        for (const res of data['statistics']) {
+            const pdbid = res['object'].split(':')[0];
+            if (localStorage.getItem(pdbid) === null) {
+                no_titles.push(pdbid);
+            }
+        }
+        if (no_titles.length) {
+            fetch_titles(no_titles);
+        }
 
-                statusTable.columns.adjust().draw();
+        for (const res of data['statistics']) {
+            let [pdbid, chain] = res['object'].split(':');
+            let details_params = new URLSearchParams();
+            details_params.set('job_id', job_id);
+            details_params.set('object', res['object']);
+            details_params.set('chain', chain);
+            let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
 
-                // Remove rows that had ? but now are not present in results (they are below Q-score limit)
-                let to_remove = [];
-                resultsTable.rows().every(function () {
-                    if (!(this.node().id in data['statistics'])) {
-                        to_remove.push(this.node());
-                    }
-                });
-                to_remove.forEach(function (node) {
-                    resultsTable.row(node).remove().draw();
-                });
+            let qscore = '?';
+            let rmsd = '?';
+            let aligned = '?';
+            let seq_id = '?';
+            let link = `<img src="/static/empty.png" alt="Alignment thumbnail of ${res['object']}">`;
 
-                // Get title of proteins
-                let no_titles = []
-                for (const res of data['statistics']) {
-                    const pdbid = res['object'].split(':')[0];
-                    if (localStorage.getItem(pdbid) === null) {
-                        no_titles.push(pdbid);
-                    }
-                }
-                if (no_titles.length) {
-                    fetch_titles(no_titles);
-                }
-
-                for (const res of data['statistics']) {
-                    let [pdbid, chain] = res['object'].split(':');
-                    let details_params = new URLSearchParams();
-                    details_params.set('job_id', job_id);
-                    details_params.set('object', res['object']);
-                    details_params.set('chain', chain);
-                    let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
-
-                    let qscore = '?';
-                    let rmsd = '?';
-                    let aligned = '?';
-                    let seq_id = '?';
-                    let link = `<img src="/static/empty.png" alt="Alignment thumbnail of ${res['object']}">`;
-
-                    if (res['qscore'] !== -1) {
-                        qscore = res['qscore'].toFixed(3);
-                        rmsd = res['rmsd'].toFixed(3);
-                        aligned = res['aligned'];
-                        seq_id = res['seq_id'].toFixed(3);
-                        link = `<a href="/details?${details_params.toString()}" target="_blank">
+            if (res['qscore'] !== -1) {
+                qscore = res['qscore'].toFixed(3);
+                rmsd = res['rmsd'].toFixed(3);
+                aligned = res['aligned'];
+                seq_id = res['seq_id'].toFixed(3);
+                link = `<a href="/details?${details_params.toString()}" target="_blank">
                                 <div class="zoom-text">Show 3D visualization</div>
                                 <img src="/get_image?job_id=${job_id}&object=${res['object']}"
                                      alt="Alignment thumbnail of ${res['object']}">
                                 </a>`;
-                    }
-
-                    const data = [idx + 1, res['object'],
-                        `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank" rel="noreferrer">
-                            <div class="name_${pdbid}" style="max-width: 900px">${name}</div>
-                        </a>`,
-                        qscore, rmsd, aligned, seq_id,
-                        link];
-
-                    if ($(`[id="${res['object']}"]`).length) {
-                        resultsTable.row(`[id="${res['object']}"]`).data(data);
-                    } else {
-                        resultsTable.row.add(data).node().id = res['object'];
-                    }
-                    idx++;
-                }
-                resultsTable.columns.adjust().draw();
-
-                if (phases_done !== 3 || data['status'] !== 'FINISHED') {
-                    setTimeout(worker, 500);
-                }
             }
-        });
-    })();
+
+            const data = [idx + 1, res['object'],
+                `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank" rel="noreferrer">
+                            <div class="name_${pdbid}" style="max-width: 900px">${name}</div>
+                        </a>`, qscore, rmsd, aligned, seq_id, link];
+
+            resultsTable.row.add(data).node().id = res['object'];
+            idx++;
+        }
+        resultsTable.columns.adjust().draw();
+    }
 }
 
 

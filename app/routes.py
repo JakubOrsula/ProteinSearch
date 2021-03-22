@@ -1,7 +1,8 @@
-from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for
+from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for, Response
 import os
 import multiprocessing
 import python_distance
+from typing import Generator
 
 from . import application
 from .config import *
@@ -118,19 +119,19 @@ def get_pdb():
 
 
 @application.route('/get_random_pdbs')
-def get_random_pdbs():
-    return jsonify(get_names(get_random_pdb_ids(10))), 200
+def get_random_pdbs() -> Response:
+    return jsonify(get_names(get_random_pdb_ids(10)))
 
 
 @application.route('/get_searched_pdbs')
-def get_searched_pdbs():
+def get_searched_pdbs() -> Response:
     query = request.args.get('query')
-    return jsonify(get_names(search_title(query, 1000))), 200
+    return jsonify(get_names(search_title(query, 1000)))
 
 
 @application.route('/get_protein_names', methods=['POST'])
-def get_protein_names():
-    return jsonify(get_names(request.get_json())), 200
+def get_protein_names() -> Response:
+    return jsonify(get_names(request.get_json()))
 
 
 @application.route('/get_image')
@@ -141,97 +142,120 @@ def get_image():
     return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), f'{obj}.aligned.png', cache_timeout=0)
 
 
-@application.route('/get_results')
-def get_results():
-    job_id: str = request.args.get('job_id')
+def results_event_stream(job_id: str) -> Generator[str, None, None]:
+    sent_data = ''
+    timer = 0
+    print(f'Stream started for job_id = {job_id}')
+    while True:
+        job_data = computation_results[job_id]
+        res_data = {'chain_ids': [],
+                    'status': 'COMPUTING',
+                    'sketches_small_status': 'COMPUTING',
+                    'sketches_large_status': 'WAITING',
+                    'full_status': 'WAITING'}
 
-    job_data = computation_results[job_id]
-
-    res_data = {'chain_ids': [],
-                'sketches_small_status': 'COMPUTING',
-                'sketches_large_status': 'WAITING',
-                'full_status': 'WAITING'}
-
-    sketches_small = job_data['sketches_small']
-    if sketches_small.ready():
-        try:
-            res_data['chain_ids'], stats = sketches_small.get()
-            res_data['sketches_small_statistics'] = stats
-
-            res_data['sketches_small_status'] = 'DONE'
-            res_data['sketches_large_status'] = 'COMPUTING'
-
-            if job_data['sketches_large'] is None:
-                job_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
-                    job_data['query'], job_data['radius'], job_data['num_results'], 'sketches_large', job_id))
-
-        except RuntimeError as e:
-            res_data['sketches_small_status'] = 'ERROR'
-            res_data['error_message'] = str(e)
-
-        sketches_large = job_data['sketches_large']
-        if sketches_large is not None and sketches_large.ready():
+        sketches_small = job_data['sketches_small']
+        if sketches_small.ready():
             try:
-                res_data['chain_ids'], stats = sketches_large.get()
-                res_data['sketches_large_statistics'] = stats
+                res_data['chain_ids'], stats = sketches_small.get()
+                res_data['sketches_small_statistics'] = stats
 
-                res_data['sketches_large_status'] = 'DONE'
-                res_data['full_status'] = 'COMPUTING'
+                res_data['sketches_small_status'] = 'DONE'
+                res_data['sketches_large_status'] = 'COMPUTING'
 
-                if job_data['full'] is None:
-                    job_data['full'] = pool.apply_async(get_results_messif, args=(
-                        job_data['query'], job_data['radius'], job_data['num_results'], 'full', job_id))
+                if job_data['sketches_large'] is None:
+                    job_data['sketches_large'] = pool.apply_async(get_results_messif, args=(
+                        job_data['query'], job_data['radius'], job_data['num_results'], 'sketches_large', job_id))
 
             except RuntimeError as e:
-                res_data['sketches_large_status'] = 'ERROR'
+                res_data['status'] = 'ERROR'
+                res_data['sketches_small_status'] = 'ERROR'
                 res_data['error_message'] = str(e)
 
-            full = job_data['full']
-            if full is not None and full.ready():
+            sketches_large = job_data['sketches_large']
+            if sketches_large is not None and sketches_large.ready():
                 try:
-                    res_data['chain_ids'], stats = full.get()
-                    res_data['full_status'] = 'DONE'
-                    res_data['full_statistics'] = stats
+                    res_data['chain_ids'], stats = sketches_large.get()
+                    res_data['sketches_large_statistics'] = stats
+
+                    res_data['sketches_large_status'] = 'DONE'
+                    res_data['full_status'] = 'COMPUTING'
+
+                    if job_data['full'] is None:
+                        job_data['full'] = pool.apply_async(get_results_messif, args=(
+                            job_data['query'], job_data['radius'], job_data['num_results'], 'full', job_id))
+
                 except RuntimeError as e:
-                    res_data['full_status'] = 'ERROR'
+                    res_data['status'] = 'ERROR'
+                    res_data['sketches_large_status'] = 'ERROR'
                     res_data['error_message'] = str(e)
 
-    query = job_data['query']
-    min_qscore = 1 - job_data['radius']
-    for chain_id in res_data['chain_ids']:
-        if chain_id not in job_data['result_stats']:
-            job_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore, job_id))
+                full = job_data['full']
+                if full is not None and full.ready():
+                    try:
+                        res_data['chain_ids'], stats = full.get()
+                        res_data['full_status'] = 'DONE'
+                        res_data['full_statistics'] = stats
+                    except RuntimeError as e:
+                        res_data['status'] = 'ERROR'
+                        res_data['full_status'] = 'ERROR'
+                        res_data['error_message'] = str(e)
 
-    statistics = []
-    completed = 0
-    for chain_id in res_data['chain_ids']:
-        job = job_data['result_stats'][chain_id]
-        if job.ready():
-            completed += 1
-            qscore, rmsd, seq_id, aligned = job.get()
-            if qscore < 1 - job_data['radius']:
-                continue
-            statistics.append({'object': chain_id,
-                               'qscore': round(qscore, 3),
-                               'rmsd': round(rmsd, 3),
-                               'seq_id': round(seq_id, 3),
-                               'aligned': aligned})
+        query = job_data['query']
+        min_qscore = 1 - job_data['radius']
+        for chain_id in res_data['chain_ids']:
+            if chain_id not in job_data['result_stats']:
+                job_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore, job_id))
+
+        statistics = []
+        completed = 0
+        for chain_id in res_data['chain_ids']:
+            job = job_data['result_stats'][chain_id]
+            if job.ready():
+                completed += 1
+                qscore, rmsd, seq_id, aligned = job.get()
+                if qscore < 1 - job_data['radius']:
+                    continue
+                statistics.append({'object': chain_id,
+                                   'qscore': round(qscore, 3),
+                                   'rmsd': round(rmsd, 3),
+                                   'seq_id': round(seq_id, 3),
+                                   'aligned': aligned})
+            else:
+                statistics.append({
+                    'object': chain_id,
+                    'qscore': -1,
+                    'rmsd': None,
+                    'seq_id': None,
+                    'aligned': None,
+                })
+
+        statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
+        res_data['statistics'] = statistics
+        res_data['completed'] = completed
+        res_data['total'] = len(res_data['chain_ids'])
+
+        if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
+            res_data['status'] = 'FINISHED'
+
+        if res_data != sent_data:
+            timer = 0
+            sent_data = res_data
+            yield 'data: ' + json.dumps(res_data) + '\n\n'
         else:
-            statistics.append({
-                'object': chain_id,
-                'qscore': -1,
-                'rmsd': None,
-                'seq_id': None,
-                'aligned': None,
-            })
+            if timer == 5:
+                timer = 0
+                yield ': keep-alive'
 
-    statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
-    res_data['statistics'] = statistics
-    res_data['completed'] = completed
-    res_data['total'] = len(res_data['chain_ids'])
-    if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
-        res_data['status'] = 'FINISHED'
-    else:
-        res_data['status'] = 'COMPUTING'
+        timer += 1
+        time.sleep(1)
+        if res_data['status'] in ['FINISHED', 'ERROR']:
+            break
 
-    return jsonify(res_data), 200
+    print(f'Stream ended for job_id = {job_id}')
+
+
+@application.route('/get_results_stream')
+def stream() -> Response:
+    job_id: str = request.args.get('job_id')
+    return Response(results_event_stream(job_id), mimetype='text/event-stream')
