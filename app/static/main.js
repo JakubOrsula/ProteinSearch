@@ -198,7 +198,7 @@ function init_results() {
                 }
                 statusTable.row.add([
                     `<b>${phase_names[phase]}</b>`,
-                    '🗸',
+                    '<i class="bi bi-check"></i>',
                     `${stats['pivotDistCountTotal']} (computed: 
                                 ${stats['pivotDistCountTotal'] - stats['pivotDistCountCached']}, 
                                 cached: ${stats['pivotDistCountCached']})`,
@@ -216,14 +216,15 @@ function init_results() {
             } else if (status === 'WAITING') {
                 statusTable.row.add([
                     `<b>${phase_names[phase]}</b>`,
-                    '?', '',
+                    '<i class="bi bi-question"></i>', '',
                     '', '', '', ''
                 ]).draw();
             } else {
                 // Error occurred
                 statusTable.row.add([
                     `<b>${phase_names[phase]}</b>`,
-                    '×', `<span class="text-danger">Error: ${data['error_message']}</span>`,
+                    '<i class="bi bi-exclamation-diamond"></i>',
+                    `<span class="text-danger">Error: ${data['error_message']}</span>`,
                     '', `<span class="text-danger">Search aborted</span>`, '', ''
                 ]).draw();
             }

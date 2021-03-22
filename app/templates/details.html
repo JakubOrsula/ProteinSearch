@@ -6,8 +6,9 @@
     <meta name="description" content="ProteinSearch">
     <title>Protein Chain Similarity Search - Details (query chain {{ query_chain }} and {{ object }})</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='litemol/css/LiteMol-plugin-light.min.css') }}" type="text/css" />
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='litemol/css/LiteMol-plugin-light.min.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}" type="text/css">
 </head>
 
 <body>
@@ -17,8 +18,8 @@
 <div class="container p-3">
     <div class="row">
         <div class="col">
-            <a class="h1 text-dark card-link font-weight-bold" style="display: inline" href="{{ url_for('index') }}">Protein Chain Similarity Search</a>
-            <h3 class="ml-5 text-secondary" style="display: inline">Details</h3>
+            <a class="h1 text-dark card-link font-weight-bold mr-5" style="display: inline" href="{{ url_for('index') }}">Protein Chain Similarity Search</a>
+            <h3 class="text-secondary" style="display: inline">Details</h3>
         </div>
     </div>
     <hr>

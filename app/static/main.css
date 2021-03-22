@@ -1,0 +1,53 @@
+/* Index page */
+
+.list-group-item {
+    padding: 0.5rem 0.5rem;
+}
+
+/* Results page */
+
+html, body, .container-fluid {
+    height: 100%;
+}
+
+#table {
+    padding-bottom: 300px;
+}
+
+#table tr:last-child td {
+    border-bottom-width: 1px;
+}
+
+#resize_wrapper {
+    position: relative;
+    height: 93%;
+}
+
+.dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody {
+    overflow-y: scroll !important;
+}
+
+img {
+    width: 100px;
+    height: 100px;
+}
+
+tbody .small_padding {
+    padding: 5px !important;
+}
+
+.zoom:hover img {
+    transform: scale(4) translate(-65%, 37%);
+    border: 1px solid grey;
+    background: white;
+}
+
+.zoom-text {
+    display: none;
+}
+
+.zoom:hover .zoom-text {
+    display: block;
+    position: absolute;
+    padding: 0.75rem
+}
