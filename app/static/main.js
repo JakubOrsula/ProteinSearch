@@ -106,7 +106,7 @@ function fetch_titles(pdbids) {
         success: function (data) {
             for (const [pdbid, title] of Object.entries(data)) {
                 localStorage[pdbid] = title;
-                $(`.name_${pdbid}`).val(title);
+                $(`.name_${pdbid}`).html(title);
             }
         }
     })
@@ -166,11 +166,45 @@ function init_results() {
         }
     });
 
-    const eventSource = new EventSource(`/get_results_stream?${object_params.toString()}`);
-    eventSource.onmessage = function (e) {
-        const data = JSON.parse(e.data);
+    let $save_query = $('#save_query');
+    let $cancel_back = $('#cancel_back');
+    let $saved_query_url = $('#saved_query_url');
+    let $clipboard_copy = $('#clipboard_copy');
+
+    $save_query.on('click', function () {
+        $.ajax({
+            url: `/save_query?${object_params.toString()}`,
+            success: function (data) {
+                $saved_query_url.val(data);
+            }
+        })
+    });
+
+    $clipboard_copy.on('click', function () {
+        navigator.clipboard.writeText($saved_query_url.val()).then(function () {
+                $saved_query_url.val('Successfully copied.');
+            }, function (error) {
+                $saved_query_url.val(error);
+            }
+        )
+    });
+
+    $cancel_back.on('click', function () {
+       location.href = '/';
+    });
+
+    function update_content(data) {
         if (['FINISHED', 'ERROR'].includes(data['status'])) {
             eventSource.close();
+            $cancel_back.removeClass('btn-danger');
+            $cancel_back.text('Back');
+            $cancel_back.removeAttr('title');
+            $cancel_back.prop('disabled', false);
+            $cancel_back.addClass('btn-primary');
+        }
+
+        if (data['status'] === 'FINISHED') {
+            $save_query.prop('disabled', false);
         }
 
         let idx = 0;
@@ -280,6 +314,18 @@ function init_results() {
         }
         resultsTable.columns.adjust().draw();
     }
+
+    const eventSource = new EventSource(`/get_results_stream?${object_params.toString()}`);
+    if (window.location.pathname === '/results') {
+        eventSource.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            update_content(data);
+        }
+    } else {
+        const data = JSON.parse(saved_statistics);
+        update_content(data);
+    }
+
 }
 
 
@@ -338,10 +384,10 @@ function init_details() {
 
 
 $(function () {
-    let page = window.location.pathname;
+    const page = window.location.pathname;
     if (page === '/') {
         init_index();
-    } else if (page === '/results') {
+    } else if (page === '/results' || page === '/saved_query') {
         init_results();
     } else if (page === '/details') {
         init_details();

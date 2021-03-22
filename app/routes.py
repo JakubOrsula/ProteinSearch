@@ -75,6 +75,8 @@ def search():
         'full': None,
         'query': query,
         'radius': radius,
+        'name': name,
+        'chain': chain,
         'num_results': num_results,
         'result_stats': {}
     }
@@ -95,7 +97,7 @@ def results():
     chain: str = request.args.get('chain')
     name: str = request.args.get('name')
 
-    return render_template('results.html', query=chain, job_id=job_id, input_name=name)
+    return render_template('results.html', query=f'{name}:{chain}', job_id=job_id)
 
 
 @application.route('/details')
@@ -205,7 +207,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         min_qscore = 1 - job_data['radius']
         for chain_id in res_data['chain_ids']:
             if chain_id not in job_data['result_stats']:
-                job_data['result_stats'][chain_id] = pool.apply_async(get_stats, args=(query, chain_id, min_qscore, job_id))
+                job_data['result_stats'][chain_id] = pool.apply_async(get_stats,
+                                                                      args=(query, chain_id, min_qscore, job_id))
 
         statistics = []
         completed = 0
@@ -238,6 +241,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
             res_data['status'] = 'FINISHED'
 
+        job_data['res_data'] = res_data
+
         if res_data != sent_data:
             timer = 0
             sent_data = res_data
@@ -259,3 +264,45 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 def stream() -> Response:
     job_id: str = request.args.get('job_id')
     return Response(results_event_stream(job_id), mimetype='text/event-stream')
+
+
+@application.route('/save_query')
+def save_query():
+    job_id: str = request.args.get('job_id')
+    job_data = computation_results[job_id]
+    statistics = job_data['res_data']
+
+    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    c = conn.cursor()
+    sql_insert = ('INSERT IGNORE INTO savedQueries '
+                  '(job_id, name, chain, radius, k, statistics) VALUES (%s, %s, %s, %s, %s, %s)')
+
+    c.execute(sql_insert, (job_id, job_data['name'], job_data['chain'], job_data['radius'], job_data['num_results'],
+                           json.dumps(statistics)))
+    conn.commit()
+    c.close()
+    conn.close()
+
+    return Response(f'{request.url_root}saved_query?job_id={job_id}')
+
+
+@application.route('/saved_query')
+def saved_query():
+    job_id: str = request.args.get('job_id')
+
+    dir_exists = os.path.exists(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
+    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    c = conn.cursor()
+
+    sql_select = 'SELECT name, chain, radius, k, statistics FROM savedQueries WHERE job_id = %s'
+    c.execute(sql_select, (job_id,))
+    data = c.fetchall()
+    c.close()
+    conn.close()
+
+    if not dir_exists or not data:
+        return Response('Invalid link.')
+
+    name, chain, radius, k, statistics = data[0]
+
+    return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}')

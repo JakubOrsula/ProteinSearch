@@ -20,7 +20,7 @@ html, body, .container-fluid {
 
 #resize_wrapper {
     position: relative;
-    height: 93%;
+    height: 100%;
 }
 
 .dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody {
