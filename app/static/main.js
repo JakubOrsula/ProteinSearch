@@ -55,7 +55,7 @@ function init_index() {
     })
 
     $search_pdb.on('click', function () {
-        const query = $search_input.val();
+        const query = $search_input.val().trim();
         $.ajax({
                 url: `/get_searched_pdbs?query=${query}`,
                 success: function (data) {
@@ -86,7 +86,8 @@ function init_index() {
     });
 
     $pdbid.on('input', function () {
-        let val = $pdbid.val();
+        const val = $pdbid.val().trim();
+        $pdbid.val(val);
         if (val.length === 4) {
             $select_pdb_id.prop('disabled', false);
         } else {
