@@ -217,14 +217,14 @@
         <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
 
         <div class="row pt-4">
-            <div class="col-12 col-sm-3 col-lg-2 pb-2 pb-sm-0">
+            <div class="col-12 col-sm-4 col-md-3 col-xl-2 pb-2 pb-sm-0">
                 <button class="btn btn-success form-control" type="submit" id="run" {% if not selected %}
-                        disabled {% endif %}><i class="bi bi-search mr-1"></i> Run
+                        disabled {% endif %}><i class="bi bi-search mr-1"></i> Run search
                 </button>
 
             </div>
-            <div class="col-12 col-sm-3 col-md-2 ml-auto pb-2 pb-sm-0 float-right">
-                <a class="btn btn-dark form-control" href="{{ url_for('index') }}">Reset</a>
+            <div class="col-12 col-sm-3 col-lg-2 ml-auto pb-2 pb-sm-0 float-right">
+                <a class="btn btn-dark form-control" href="{{ url_for('index') }}">Reset form</a>
             </div>
         </div>
     </form>
