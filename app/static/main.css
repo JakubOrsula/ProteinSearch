@@ -49,5 +49,6 @@ tbody .small_padding {
 .zoom:hover .zoom-text {
     display: block;
     position: absolute;
+    text-decoration: underline;
     padding: 0.75rem
 }
