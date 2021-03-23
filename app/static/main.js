@@ -27,6 +27,7 @@ function init_index() {
     $search_input.on('keypress', function (event) {
         if (event.keyCode === 13 && $search_input.val().length > 2) {
             $search_pdb.trigger('click');
+            event.preventDefault();
         }
     })
 
@@ -47,8 +48,7 @@ function init_index() {
                         $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
                                                 name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
                     }
-
-                    $status.html('Displaying 10 random results');
+                    $status.html('Showing 10 random proteins as proposals');
                 }
             }
         )
@@ -64,10 +64,10 @@ function init_index() {
                     for (const [pdb_id, name] of Object.entries(data)) {
                         $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
                                                 name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
-                        $status.html(`Displaying ${num_results} result(s)`);
+                        $status.html(`Showing ${num_results} result(s)`);
                     }
                     if (num_results === 1000) {
-                        $status.html('Displaying first 1000 results');
+                        $status.html('Showing first 1000 results');
                     }
                     if (num_results === 0) {
                         $status.html('No results found');
