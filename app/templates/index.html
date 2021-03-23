@@ -21,7 +21,7 @@
             </a>
         </div>
     </div>
-    <hr>
+
 
     {% set selected = selected | default(False, True) %}
 
@@ -36,6 +36,19 @@
             {% endfor %}
         {% endif %}
     {% endwith %}
+
+    <div class="row pt-2">
+        <div class="col">
+            <p class="lead">
+                Search for the most similar protein chains to a given query chain. <br>
+            </p>
+            Indexed {{ chain_count }} chains from {{ protein_count }} proteins downloaded from <a
+                href="http://pdbe.org/" rel="noreferrer" target="_blank">PDBe</a>.
+            Last update {{ updated }}.
+        </div>
+    </div>
+    <hr>
+
     <div class="row pb-2">
         <div class="col">
             <span class="h4">1. Select protein</span>

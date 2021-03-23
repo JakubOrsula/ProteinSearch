@@ -15,8 +15,24 @@ computation_results = {}
 
 @application.route('/', methods=['GET', 'POST'])
 def index():
+    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    c = conn.cursor()
+
+    c.execute('SELECT COUNT(*) from proteinId')
+    protein_count = c.fetchall()[0][0]
+    protein_count = f'{protein_count:,}'.replace(',', ' ')
+
+    c.execute('SELECT COUNT(*) from proteinChain')
+    chain_count = c.fetchall()[0][0]
+    chain_count = f'{chain_count:,}'.replace(',', ' ')
+
+    c.execute('SELECT DATE(MAX(added)) from proteinChain')
+    last_update = c.fetchall()[0][0]
+    c.close()
+    conn.close()
+
     if request.method == 'GET':
-        return render_template('index.html')
+        return render_template('index.html', protein_count=protein_count, chain_count=chain_count, updated=last_update)
 
     if 'select_pdb_id' in request.form:
         try:
@@ -54,7 +70,7 @@ def index():
                                uploaded=True)
     else:
         flash('Unknown error')
-        return render_template('index.html')
+        return render_template('index.html', protein_count=protein_count, chain_count=chain_count, updated=last_update)
 
 
 @application.route('/search', methods=['POST'])
