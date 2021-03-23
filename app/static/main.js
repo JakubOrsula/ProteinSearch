@@ -162,7 +162,7 @@ function init_results() {
         scrollY: 100,
         info: false,
         language: {
-            emptyTable: 'No similar protein chains found in the database.'
+            emptyTable: 'Searching... No similar protein chains found yet.'
         }
     });
 
@@ -205,6 +205,7 @@ function init_results() {
 
         if (data['status'] === 'FINISHED') {
             $save_query.prop('disabled', false);
+            $('.dataTables_empty').html('No similar protein chains found in the database.')
         }
 
         let idx = 0;
