@@ -15,7 +15,7 @@ from .config import *
 
 
 def get_random_pdb_ids(number: int) -> List[str]:
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %s', (number,))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
@@ -25,7 +25,7 @@ def get_random_pdb_ids(number: int) -> List[str]:
 
 
 def get_names(pdb_ids: List[str]) -> Dict[str, str]:
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     names = {}
     for pdb_id in pdb_ids:
@@ -37,7 +37,7 @@ def get_names(pdb_ids: List[str]) -> Dict[str, str]:
 
 
 def search_title(query: str, limit: int) -> List[str]:
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     c.execute(f'SELECT id FROM proteinId WHERE id IN (SELECT pdbId FROM protein WHERE name LIKE %s) LIMIT %s',
               (f'%{query}%', limit))
@@ -48,7 +48,7 @@ def search_title(query: str, limit: int) -> List[str]:
 
 
 def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     c.execute(f'SELECT gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
     chains = [chain_id[0].split(':')[1] for chain_id in c.fetchall()]
@@ -135,7 +135,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
     if not messif_ids:
         return [], statistics
 
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     query_template = ', '.join(['%s'] * len(messif_ids))
     c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({query_template})', tuple(messif_ids))
@@ -147,7 +147,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
 
 
 def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int, List[float]]:
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
     select_query = (f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats '

@@ -18,7 +18,7 @@ db_stats = {}
 def index():
     global db_stats
     if not db_stats:
-        conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+        conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
         c = conn.cursor()
 
         c.execute('SELECT COUNT(*) from proteinId')
@@ -29,7 +29,7 @@ def index():
         chain_count = c.fetchall()[0][0]
         chain_count = f'{chain_count:,}'.replace(',', ' ')
 
-        c.execute('SELECT DATE(MAX(added)) from proteinChain')
+        c.execute('SELECT DATE(MAX(lastUpdate)) from proteinChainMetadata')
         last_update = c.fetchall()[0][0]
         c.close()
         conn.close()
@@ -293,7 +293,7 @@ def save_query():
     job_data = computation_results[job_id]
     statistics = job_data['res_data']
 
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     sql_insert = ('INSERT IGNORE INTO savedQueries '
                   '(job_id, name, chain, radius, k, statistics) VALUES (%s, %s, %s, %s, %s, %s)')
@@ -312,7 +312,7 @@ def saved_query():
     job_id: str = request.args.get('job_id')
 
     dir_exists = os.path.exists(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
     sql_select = 'SELECT name, chain, radius, k, statistics FROM savedQueries WHERE job_id = %s'
