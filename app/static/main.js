@@ -348,12 +348,13 @@ function load_molecule(plugin, job_id, object, index) {
     }).then(
         () => {
             let colors = LiteMol.Bootstrap.Immutable.Map();
+            const color = index === 0 ? {r: 0.129, g: 0.607, b: 0.466} : {r: 0.752, g: 0.333, b: 0.098};
             let style = {
                 type: 'Cartoons',
                 params: {detail: 'Automatic', showDirectionCone: false},
                 theme: {
                     template: LiteMol.Bootstrap.Visualization.Molecule.Default.UniformThemeTemplate,
-                    colors: colors.set('Uniform', LiteMol.Visualization.Molecule.Colors.DefaultPallete[index]),
+                    colors: colors.set('Uniform', color),
                     transparency: {}
                 }
             };
