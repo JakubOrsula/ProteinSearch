@@ -11,28 +11,33 @@ from .computation import *
 pool = multiprocessing.Pool()
 
 computation_results = {}
+db_stats = {}
 
 
 @application.route('/', methods=['GET', 'POST'])
 def index():
-    conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
-    c = conn.cursor()
+    global db_stats
+    if not db_stats:
+        conn = mariadb.connect(user=DB_USER, password=DB_PASS, database=DB_NAME)
+        c = conn.cursor()
 
-    c.execute('SELECT COUNT(*) from proteinId')
-    protein_count = c.fetchall()[0][0]
-    protein_count = f'{protein_count:,}'.replace(',', ' ')
+        c.execute('SELECT COUNT(*) from proteinId')
+        protein_count = c.fetchall()[0][0]
+        protein_count = f'{protein_count:,}'.replace(',', ' ')
 
-    c.execute('SELECT COUNT(*) from proteinChain')
-    chain_count = c.fetchall()[0][0]
-    chain_count = f'{chain_count:,}'.replace(',', ' ')
+        c.execute('SELECT COUNT(*) from proteinChain')
+        chain_count = c.fetchall()[0][0]
+        chain_count = f'{chain_count:,}'.replace(',', ' ')
 
-    c.execute('SELECT DATE(MAX(added)) from proteinChain')
-    last_update = c.fetchall()[0][0]
-    c.close()
-    conn.close()
+        c.execute('SELECT DATE(MAX(added)) from proteinChain')
+        last_update = c.fetchall()[0][0]
+        c.close()
+        conn.close()
+
+        db_stats = {'protein_count': protein_count, 'chain_count': chain_count, 'updated': last_update}
 
     if request.method == 'GET':
-        return render_template('index.html', protein_count=protein_count, chain_count=chain_count, updated=last_update)
+        return render_template('index.html', **db_stats)
 
     if 'select_pdb_id' in request.form:
         try:
@@ -40,37 +45,37 @@ def index():
             job_id, ids = prepare_indexed_chain(pdb_id)
         except RuntimeError:
             flash('Incorrect PDB ID')
-            return render_template('index.html')
+            return render_template('index.html', **db_stats)
         name = get_names([pdb_id])[pdb_id]
         return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=pdb_id,
-                               uploaded=False, name=name)
+                               uploaded=False, name=name, **db_stats)
     elif 'selected' in request.form:
         pdb_id = request.form['selected']
         try:
             job_id, ids = prepare_indexed_chain(pdb_id)
         except RuntimeError as e:
             flash(f'Internal error: {e}')
-            return render_template('index.html')
+            return render_template('index.html', **db_stats)
         except FileNotFoundError:
             flash('Internal error: Required source file not found.')
-            return render_template('index.html')
+            return render_template('index.html', **db_stats)
 
         name = get_names([pdb_id])[pdb_id]
         return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=pdb_id,
-                               uploaded=False, name=name)
+                               uploaded=False, name=name, **db_stats)
     elif 'upload' in request.form:
         try:
             job_id, ids = process_input(request)
         except RuntimeError as e:
             flash(e)
-            return render_template('index.html')
+            return render_template('index.html', **db_stats)
 
         filename = request.files['file'].filename
         return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=filename,
-                               uploaded=True)
+                               uploaded=True, **db_stats)
     else:
         flash('Unknown error')
-        return render_template('index.html', protein_count=protein_count, chain_count=chain_count, updated=last_update)
+        return render_template('index.html', **db_stats)
 
 
 @application.route('/search', methods=['POST'])
