@@ -171,6 +171,10 @@ function init_results() {
     let $cancel_back = $('#cancel_back');
     let $saved_query_url = $('#saved_query_url');
     let $clipboard_copy = $('#clipboard_copy');
+    let $copy_status = $('#copy_status');
+    let $save_query_close = $('#save_query_close');
+
+    $save_query.toggle(false);
 
     $save_query.on('click', function () {
         $.ajax({
@@ -183,12 +187,16 @@ function init_results() {
 
     $clipboard_copy.on('click', function () {
         navigator.clipboard.writeText($saved_query_url.val()).then(function () {
-                $saved_query_url.val('Successfully copied.');
+                $copy_status.text('Successfully copied to clipboard.')
             }, function (error) {
-                $saved_query_url.val(error);
+                $copy_status.text(error);
             }
         )
     });
+
+    $save_query_close.on('click', function () {
+        $copy_status.text('');
+    })
 
     $cancel_back.on('click', function () {
        location.href = '/';
@@ -205,7 +213,7 @@ function init_results() {
         }
 
         if (data['status'] === 'FINISHED') {
-            $save_query.prop('disabled', false);
+            $save_query.toggle(true);
             $('.dataTables_empty').html('No similar protein chains found in the database.')
         }
 
