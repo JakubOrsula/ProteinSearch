@@ -44,7 +44,7 @@
         <div class="col">
             <a class="h1 text-dark card-link font-weight-bold mr-5" style="display: inline"
                href="{{ url_for('index') }}">Protein Chain Similarity Search</a>
-            <h3 class="text-secondary" style="display: inline">Results</h3>
+            <h3 class="text-secondary" style="display: inline">Results {% if saved %} from {{ added }} {% endif %}</h3>
         </div>
     </div>
     <div class="row">

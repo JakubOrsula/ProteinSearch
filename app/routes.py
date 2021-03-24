@@ -315,7 +315,7 @@ def saved_query():
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
-    sql_select = 'SELECT name, chain, radius, k, statistics FROM savedQueries WHERE job_id = %s'
+    sql_select = 'SELECT name, chain, radius, k, statistics, added FROM savedQueries WHERE job_id = %s'
     c.execute(sql_select, (job_id,))
     data = c.fetchall()
     c.close()
@@ -324,6 +324,6 @@ def saved_query():
     if not dir_exists or not data:
         return Response('Invalid link.')
 
-    name, chain, radius, k, statistics = data[0]
+    name, chain, radius, k, statistics, added = data[0]
 
-    return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}')
+    return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added)
