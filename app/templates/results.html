@@ -72,20 +72,24 @@
         </div>
     </div>
     {% if not saved %}
-    <div class="row mt-2">
-        <div class="col-12 pb-2 pb-sm-0 form-inline">
-            <div class="form-group mr-5">
-                <button class="btn btn-danger" id="cancel_back" disabled title="Not implemented yet">Stop search</button>
+        <div class="row mt-2">
+            <div class="col-12 pb-2 pb-sm-0 form-inline">
+                <div class="form-group mr-5">
+                    <button class="btn btn-danger" id="cancel_back" disabled title="Not implemented yet">Stop search
+                    </button>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#save_query_window"
+                            id="save_query">Share results</button>
+                </div>
             </div>
-            <div class="form-group">
-                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#save_query_window"
-                        id="save_query">
-                    Share results
-                </button>
-            </div>
-
         </div>
-    </div>
+    {% else %}
+        <div class="row mt-2">
+            <div class="col-12 pb-2 pb-sm-0 form-inline">
+                <a href="/" class="btn btn-primary">Try new search</a>
+            </div>
+        </div>
     {% endif %}
     <div class="row flex-fill">
         <div class="col d-flex flex-column">
