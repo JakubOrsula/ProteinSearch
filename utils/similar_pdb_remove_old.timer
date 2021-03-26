@@ -1,0 +1,10 @@
+[Unit]
+Description=Cleans old entries of Protein Chain Search app
+Requires=similar_pdb.remove_old.service
+
+[Timer]
+Unit=similar_pdb.remove_old.service
+OnCalendar=*-*-* 1:00:00
+
+[Install]
+WantedBy=timers.target

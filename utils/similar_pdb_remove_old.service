@@ -1,0 +1,10 @@
+[Unit]
+Description=Cleans old entries of Protein Chain Search app
+Wants=similar_pdb.remove_old.timer
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/bin/remove_old.py
+
+[Install]
+WantedBy=multi-user.target
