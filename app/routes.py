@@ -42,17 +42,17 @@ def index():
     if 'select_pdb_id' in request.form:
         try:
             pdb_id = request.form['pdbid'].upper()
-            job_id, ids = prepare_indexed_chain(pdb_id)
+            job_id, chains = prepare_indexed_chain(pdb_id)
         except RuntimeError:
             flash('Incorrect PDB ID')
             return render_template('index.html', **db_stats)
         name = get_names([pdb_id])[pdb_id]
-        return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=pdb_id,
+        return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=pdb_id,
                                uploaded=False, name=name, **db_stats)
     elif 'selected' in request.form:
         pdb_id = request.form['selected']
         try:
-            job_id, ids = prepare_indexed_chain(pdb_id)
+            job_id, chains = prepare_indexed_chain(pdb_id)
         except RuntimeError as e:
             flash(f'Internal error: {e}')
             return render_template('index.html', **db_stats)
@@ -61,17 +61,17 @@ def index():
             return render_template('index.html', **db_stats)
 
         name = get_names([pdb_id])[pdb_id]
-        return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=pdb_id,
+        return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=pdb_id,
                                uploaded=False, name=name, **db_stats)
     elif 'upload' in request.form:
         try:
-            job_id, ids = process_input(request)
+            job_id, chains = process_input(request)
         except RuntimeError as e:
             flash(e)
             return render_template('index.html', **db_stats)
 
         filename = request.files['file'].filename
-        return render_template('index.html', chains=ids, selected=True, job_id=job_id, input_name=filename,
+        return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=filename,
                                uploaded=True, **db_stats)
     else:
         flash('Unknown error')

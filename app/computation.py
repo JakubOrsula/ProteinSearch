@@ -47,11 +47,11 @@ def search_title(query: str, limit: int) -> List[str]:
     return pdb_ids
 
 
-def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
+def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
-    chains = [chain_id[0].split(':')[1] for chain_id in c.fetchall()]
+    c.execute(f'SELECT gesamtId, chainLength FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
+    chains = [(chain_data[0].split(':')[1], chain_data[1]) for chain_data in c.fetchall()]
     c.close()
     conn.close()
     if not chains:
@@ -62,7 +62,7 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
 
     prefix = pdb_id[:2].lower()
     shutil.copy(os.path.join(RAW_PDB_DIR, f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
-    for chain in chains:
+    for chain in (chain[0] for chain in chains):
         filename = os.path.join(ARCHIVE_DIR, prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
 
@@ -70,7 +70,7 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[str]]:
     return job_id, chains
 
 
-def process_input(req: Request) -> Tuple[str, List[str]]:
+def process_input(req: Request) -> Tuple[str, List[Tuple[str, int]]]:
     tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
     os.chmod(tmpdir, 0o755)
     path = os.path.join(tmpdir, 'query')
@@ -81,8 +81,7 @@ def process_input(req: Request) -> Tuple[str, List[str]]:
     if not chains:
         raise RuntimeError('No chains having at least 10 residues detected.')
 
-    chain_ids, sizes = zip(*chains)
-    return job_id, list(chain_ids)
+    return job_id, chains
 
 
 def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) \
