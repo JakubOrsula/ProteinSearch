@@ -118,8 +118,8 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
                 'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
                 'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
                 'pivotTime': response['query_record']['pivotDistTimes'],
-                'searchDistCountTotal': response['statistics']['DistanceComputations'],
-                'searchDistCountCached': response['statistics']['DistanceComputations.Savings'],
+                'searchDistCountTotal': response['query_record']['DistanceComputations'],
+                'searchDistCountCached': response['query_record']['DistanceComputations.Savings'],
                 'searchTime': response['statistics']['OperationTime'] - response['query_record']['pivotDistTimes'],
             }
     except KeyError:
