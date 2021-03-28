@@ -3,6 +3,7 @@ import os
 import multiprocessing
 import python_distance
 from typing import Generator
+import copy
 
 from . import application
 from .config import *
@@ -166,7 +167,7 @@ def get_image():
 
 
 def results_event_stream(job_id: str) -> Generator[str, None, None]:
-    sent_data = ''
+    sent_data = {}
     timer = 0
     print(f'Stream started for job_id = {job_id}')
     while True:
@@ -224,6 +225,19 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
                         res_data['full_status'] = 'ERROR'
                         res_data['error_message'] = str(e)
 
+        running_phase = None
+        for phase in ['sketches_small', 'sketches_large', 'full']:
+            if res_data[f'{phase}_status'] == 'COMPUTING':
+                running_phase = phase
+
+        try:
+            if running_phase is not None:
+                res_data[f'{running_phase}_progress'] = get_progress(job_id, running_phase)
+        except RuntimeError as e:
+            res_data['status'] = 'ERROR'
+            res_data[f'{running_phase}_status'] = 'ERROR'
+            res_data['error_message'] = str(e)
+
         query = job_data['query']
         min_qscore = 1 - job_data['radius']
         for chain_id in res_data['chain_ids']:
@@ -263,11 +277,16 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
             res_data['status'] = 'FINISHED'
 
         job_data['res_data'] = res_data
-
-        if res_data != sent_data:
+        if json.dumps(res_data) != json.dumps(sent_data):
             timer = 0
-            sent_data = res_data
-            yield 'data: ' + json.dumps(res_data) + '\n\n'
+            to_send = copy.deepcopy(res_data)
+            # Don't update results table if not necessary
+            if json.dumps(sent_data.get('statistics', [])) == json.dumps(to_send['statistics']):
+                del to_send['statistics']
+
+            sent_data = to_send
+
+            yield 'data: ' + json.dumps(to_send) + '\n\n'
         else:
             if timer == 5:
                 timer = 0

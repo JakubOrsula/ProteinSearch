@@ -186,3 +186,24 @@ def get_stats(query: str, other: str, min_qscore: float, job_id: str) -> Tuple[f
         except:
             print('Cannot generate alignment and image')
     return qscore, rmsd, seq_identity, aligned
+
+
+def get_progress(job_id: str, phase: str) -> dict:
+    url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/get_progress'
+
+    try:
+        req = requests.get(url, params={'job_id': job_id})
+    except requests.exceptions.RequestException:
+        raise RuntimeError('MESSIF not responding')
+
+    response = json.loads(req.content.decode('utf-8'))
+    if bool(response['Running']):
+        return {
+            'running': True,
+            'phase': 'pivots' if response['Search step'] == 0 else 'search',
+            'dc_expected': response['DC total expected'],
+            'dc_cached': response['Skipped DC due to caching'],
+            'dc_computed': response['DC evaluated']
+        }
+    else:
+        return {'running': False}

@@ -1,5 +1,12 @@
 'use strict';
 
+const PHASE_NAMES = {
+    sketches_small: 'Small sketches',
+    sketches_large: 'Large sketches',
+    full: 'PPP codes + sketches'
+};
+
+
 function format_time(time_in_ms) {
     if (time_in_ms < 60000) {
         return `${time_in_ms.toLocaleString('cs-CZ')} ms`;
@@ -133,11 +140,28 @@ function init_results() {
                 className: 'text-right'
             },
             {
+                targets: [0],
+                width: '180px'
+            },
+            {
                 targets: [1],
+                width: '70px',
                 className: 'text-center'
+            },
+            {
+                targets: [2, 4],
+                width: '300px'
+            },
+            {
+                targets: [3, 5, 6],
+                width: '80px'
             }
         ]
     });
+
+    for (const phase of ['sketches_small', 'sketches_large', 'full']) {
+        statusTable.row.add([PHASE_NAMES[phase], '', '', '', '', '', '']).node().id = `stats_row_${phase}`;
+    }
 
     let resultsTable = $('#table').DataTable({
         columns: [
@@ -199,7 +223,7 @@ function init_results() {
     })
 
     $cancel_back.on('click', function () {
-       location.href = '/';
+        location.href = '/';
     });
 
     function update_content(data) {
@@ -217,64 +241,69 @@ function init_results() {
             $('.dataTables_empty').html('No similar protein chains found in the database.')
         }
 
-        let idx = 0;
-        statusTable.clear().draw();
-        resultsTable.clear().draw();
-
-        const phase_names = {
-            sketches_small: 'Small sketches',
-            sketches_large: 'Large sketches',
-            full: 'PPP codes + sketches'
-        };
-
         for (const phase of ['sketches_small', 'sketches_large', 'full']) {
             const status = data[`${phase}_status`];
+            let row_data = [`<b>${PHASE_NAMES[phase]}</b>`];
             if (status === 'DONE') {
                 const stats = data[`${phase}_statistics`];
 
-                let search_part = ''
+                let search_part = '-';
                 if (phase === 'full') {
                     search_part = `${stats['searchDistCountTotal']} (computed:
                                             ${stats['searchDistCountTotal'] - stats['searchDistCountCached']}, 
                                             cached: ${stats['searchDistCountCached']})`;
-                } else {
-                    search_part = '-';
                 }
-                statusTable.row.add([
-                    `<b>${phase_names[phase]}</b>`,
-                    '<i class="bi bi-check"></i>',
+
+                row_data.push('<i class="bi bi-check"></i>',
                     `${stats['pivotDistCountTotal']} (computed: 
-                                ${stats['pivotDistCountTotal'] - stats['pivotDistCountCached']}, 
-                                cached: ${stats['pivotDistCountCached']})`,
+                     ${stats['pivotDistCountTotal'] - stats['pivotDistCountCached']}, 
+                     cached: ${stats['pivotDistCountCached']})`,
                     format_time(stats['pivotTime']),
                     search_part,
                     format_time(stats['searchTime']),
-                    `<b>${format_time(stats['pivotTime'] + stats['searchTime'])}</b>`
-                ]).draw();
+                    `<b>${format_time(stats['pivotTime'] + stats['searchTime'])}</b>`);
             } else if (status === 'COMPUTING') {
-                statusTable.row.add([
-                    `<b>${phase_names[phase]}</b>`,
-                    '<div class="spinner-border spinner-border-sm" role="status" />', '',
-                    '', '', '', ''
-                ]).draw();
+                const progress_key = `${phase}_progress`;
+                let pivots_distances = '';
+                let search_distances = '';
+                if (data.hasOwnProperty(progress_key) && data[progress_key]['running']) {
+                    const progress = data[progress_key];
+                    const status = `expected: ${progress['dc_expected']} (computed: ${progress['dc_computed']}, cached: ${progress['dc_cached']})`;
+                    if (data[progress_key]['phase'] === 'pivots') {
+                        pivots_distances = status;
+                    } else {
+                        search_distances = status;
+                    }
+                }
+
+                row_data.push('<div class="spinner-border spinner-border-sm" role="status" />', pivots_distances,
+                    '', search_distances, '', '');
             } else if (status === 'WAITING') {
-                statusTable.row.add([
-                    `<b>${phase_names[phase]}</b>`,
-                    '<i class="bi bi-question"></i>', '',
-                    '', '', '', ''
-                ]).draw();
+                row_data.push('<i class="bi bi-question"></i>', '', '', '', '', '');
             } else {
                 // Error occurred
-                statusTable.row.add([
-                    `<b>${phase_names[phase]}</b>`,
-                    '<i class="bi bi-exclamation-diamond"></i>',
+                row_data.push('<i class="bi bi-exclamation-diamond"></i>',
                     `<span class="text-danger">Error: ${data['error_message']}</span>`,
-                    '', `<span class="text-danger">Search aborted</span>`, '', ''
-                ]).draw();
+                    '', `<span class="text-danger">Search aborted</span>`, '', '');
             }
+
+            let old_row_data = statusTable.row(`#stats_row_${phase}`).data();
+            let new_data = []
+            for (let i = 0; i < 7; i++) {
+                new_data.push(row_data[i] !== '' ? row_data[i] : old_row_data[i]);
+            }
+
+            statusTable.row(`#stats_row_${phase}`).data(new_data);
         }
 
         statusTable.columns.adjust().draw();
+
+        // No change in statistics -> skip the rest
+        if (!data.hasOwnProperty('statistics')) {
+            return;
+        }
+
+        resultsTable.clear().draw();
 
         // Get title of proteins
         let no_titles = []
@@ -288,6 +317,7 @@ function init_results() {
             fetch_titles(no_titles);
         }
 
+        let idx = 0;
         for (const res of data['statistics']) {
             let [pdbid, chain] = res['object'].split(':');
             let details_params = new URLSearchParams();
