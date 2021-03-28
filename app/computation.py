@@ -84,19 +84,14 @@ def process_input(req: Request) -> Tuple[str, List[Tuple[str, int]]]:
     return job_id, chains
 
 
-def get_results_messif(query: str, radius: float, num_results: int, req_type: str, job_id: str) \
+def get_results_messif(query: str, radius: float, num_results: int, phase: str, job_id: str) \
         -> Tuple[List[str], Dict[str, int]]:
     parameters = {'queryid': query, 'k': num_results, 'job_id': job_id}
-    if req_type == 'sketches_small':
-        port = 20009
-    elif req_type == 'sketches_large':
-        port = 20003
-        parameters['radius'] = radius
-    else:
-        port = 20001
+
+    if phase in ('sketches_large', 'full'):
         parameters['radius'] = radius
 
-    url = f'http://similar-pdb.cerit-sc.cz:{port}/search'
+    url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/search'
     try:
         req = requests.get(url, params=parameters)
     except requests.exceptions.RequestException:
@@ -109,7 +104,7 @@ def get_results_messif(query: str, radius: float, num_results: int, req_type: st
 
     messif_ids = [int(record['_id']) for record in response['answer_records']]
     try:
-        if req_type in ['sketches_small', 'sketches_large']:
+        if phase in ['sketches_small', 'sketches_large']:
             statistics = {
                 'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
                 'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
