@@ -160,8 +160,9 @@ function init_results() {
     });
 
     for (const phase of ['sketches_small', 'sketches_large', 'full']) {
-        statusTable.row.add([PHASE_NAMES[phase], '', '', '', '', '', '']).node().id = `stats_row_${phase}`;
+        statusTable.row.add([`<b>${PHASE_NAMES[phase]}</b>`, '', '', '', '', '', '']).node().id = `stats_row_${phase}`;
     }
+    statusTable.draw();
 
     let resultsTable = $('#table').DataTable({
         columns: [
