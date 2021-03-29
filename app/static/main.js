@@ -192,6 +192,15 @@ function init_results() {
         }
     });
 
+    $(window).bind('beforeunload', function () {
+        // Modern browsers ignore this message
+        return 'Computation is still running, do you want to leave the page and end the search?'
+    });
+
+    $(window).bind('unload', function () {
+       navigator.sendBeacon(`/end_job?${object_params.toString()}`);
+    });
+
     let $save_query = $('#save_query');
     let $stop_search = $('#stop_search');
     let $back = $('#back');
@@ -240,6 +249,7 @@ function init_results() {
             eventSource.close();
             $stop_search.toggle(false);
             $back.toggle(true);
+            $(window).off('beforeunload unload');
         }
 
         if (data['status'] === 'FINISHED') {
