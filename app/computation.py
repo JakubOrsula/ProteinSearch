@@ -196,13 +196,24 @@ def get_progress(job_id: str, phase: str) -> dict:
         raise RuntimeError('MESSIF not responding')
 
     response = json.loads(req.content.decode('utf-8'))
-    if bool(response['Running']):
-        return {
-            'running': True,
-            'phase': 'pivots' if response['Search step'] == 0 else 'search',
-            'dc_expected': response['DC total expected'],
-            'dc_cached': response['Skipped DC due to caching'],
-            'dc_computed': response['DC evaluated']
-        }
-    else:
-        return {'running': False}
+    progress = {'running': False}
+    try:
+        if bool(response['Running']):
+            progress.update({
+                'running': True,
+                'pivotDistCountExpected': response['pivotDistCountExpected'],
+                'pivotDistCountCached': response['pivotDistCountCached'],
+                'pivotDistCountComputed': response['pivotDistCountComputed'] - response['pivotDistCountCached']
+            })
+            if phase == 'full' and response['pivotTime'] != -1:
+                progress.update({
+                    'pivotTime': response['pivotTime'],
+                    'searchDistCountExpected': response['searchDistCountExpected'],
+                    'searchDistCountCached': response['searchDistCountCached'],
+                    'searchDistCountComputed': response['searchDistCountComputed'] - response['searchDistCountCached']
+                })
+    except KeyError:
+        print('Incorrect response when calling ', url)
+        print(response)
+
+    return progress

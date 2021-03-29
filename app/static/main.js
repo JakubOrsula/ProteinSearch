@@ -267,18 +267,26 @@ function init_results() {
                 const progress_key = `${phase}_progress`;
                 let pivots_distances = '';
                 let search_distances = '';
+                let pivot_time = '';
+                let expected = 'expected:';
                 if (data.hasOwnProperty(progress_key) && data[progress_key]['running']) {
                     const progress = data[progress_key];
-                    const status = `expected: ${progress['dc_expected']} (computed: ${progress['dc_computed']}, cached: ${progress['dc_cached']})`;
-                    if (data[progress_key]['phase'] === 'pivots') {
-                        pivots_distances = status;
-                    } else {
-                        search_distances = status;
+
+                    if (progress.hasOwnProperty('pivotTime')) {
+                        search_distances = `expected: ${progress['searchDistCountExpected']} ` +
+                            `(computed: ${progress['searchDistCountComputed']}, ` +
+                            `cached: ${progress['searchDistCountCached']})`;
+                        pivot_time = format_time(progress['pivotTime']);
+                        expected = '';
                     }
+
+                    pivots_distances = `${expected} ${progress['pivotDistCountExpected']} ` +
+                        `(computed: ${progress['pivotDistCountComputed']}, ` +
+                        `cached: ${progress['pivotDistCountCached']})`;
                 }
 
                 row_data.push('<div class="spinner-border spinner-border-sm" role="status" />', pivots_distances,
-                    '', search_distances, '', '');
+                    pivot_time, search_distances, '', '');
             } else if (status === 'WAITING') {
                 row_data.push('<i class="bi bi-question"></i>', '', '', '', '', '');
             } else {
