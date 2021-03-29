@@ -267,6 +267,14 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
             res_data['status'] = 'FINISHED'
 
+        if '_abort' in job_data:
+            print('User aborted the search')
+            for phase in ['sketches_small', 'sketches_large', 'full']:
+                if res_data[f'{phase}_status'] == 'COMPUTING':
+                    end_messif_job(job_id, phase)
+
+            res_data['status'] = 'ABORTED'
+
         if json.dumps(res_data) != json.dumps(sent_data):
             timer = 0
             to_send = copy.deepcopy(res_data)
@@ -284,12 +292,12 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
         timer += 1
         time.sleep(1)
-        if res_data['status'] in ['FINISHED', 'ERROR']:
+        if res_data['status'] in ['FINISHED', 'ERROR', 'ABORTED']:
             break
 
     print(f'Stream ended for job_id = {job_id}')
     application.computation_results[job_id]['res_data'] = res_data
-    executor.shutdown()
+    executor.shutdown(cancel_futures=True)
 
 
 @application.route('/get_results_stream')
@@ -338,3 +346,10 @@ def saved_query():
     name, chain, radius, k, statistics, added = data[0]
 
     return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added)
+
+
+@application.route('/end_job')
+def end_job():
+    job_id: str = request.args.get('job_id')
+    application.computation_results[job_id]['_abort'] = True
+    return '', 204

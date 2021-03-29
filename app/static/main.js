@@ -193,12 +193,14 @@ function init_results() {
     });
 
     let $save_query = $('#save_query');
-    let $cancel_back = $('#cancel_back');
+    let $stop_search = $('#stop_search');
+    let $back = $('#back');
     let $saved_query_url = $('#saved_query_url');
     let $clipboard_copy = $('#clipboard_copy');
     let $copy_status = $('#copy_status');
     let $save_query_close = $('#save_query_close');
 
+    $back.toggle(false);
     $save_query.toggle(false);
 
     $save_query.on('click', function () {
@@ -223,23 +225,34 @@ function init_results() {
         $copy_status.text('');
     })
 
-    $cancel_back.on('click', function () {
+    $stop_search.on('click', function () {
+        $.ajax({
+            url: `/end_job?${object_params.toString()}`,
+        });
+    });
+
+    $back.on('click', function () {
         location.href = '/';
     });
 
     function update_content(data) {
-        if (['FINISHED', 'ERROR'].includes(data['status'])) {
+        if (['FINISHED', 'ERROR', 'ABORTED'].includes(data['status'])) {
             eventSource.close();
-            $cancel_back.removeClass('btn-danger');
-            $cancel_back.text('Back');
-            $cancel_back.removeAttr('title');
-            $cancel_back.prop('disabled', false);
-            $cancel_back.addClass('btn-primary');
+            $stop_search.toggle(false);
+            $back.toggle(true);
         }
 
         if (data['status'] === 'FINISHED') {
             $save_query.toggle(true);
             $('.dataTables_empty').html('No similar protein chains found in the database.')
+        } else if (data['status'] === 'ABORTED') {
+            let $running = $('#running');
+            if ($running.length) {
+                $running.removeClass(['spinner-border', 'spinner-border-sm']);
+                $running.html('<i class="bi bi-x"></i>');
+            }
+            eventSource.close();
+            return;
         }
 
         for (const phase of ['sketches_small', 'sketches_large', 'full']) {
@@ -285,8 +298,8 @@ function init_results() {
                         `cached: ${progress['pivotDistCountCached']})`;
                 }
 
-                row_data.push('<div class="spinner-border spinner-border-sm" role="status" />', pivots_distances,
-                    pivot_time, search_distances, '', '');
+                row_data.push('<div id="running" class="spinner-border spinner-border-sm" role="status" />',
+                    pivots_distances, pivot_time, search_distances, '', '');
             } else if (status === 'WAITING') {
                 row_data.push('<i class="bi bi-question"></i>', '', '', '', '', '');
             } else {

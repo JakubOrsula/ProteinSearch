@@ -217,3 +217,13 @@ def get_progress(job_id: str, phase: str) -> dict:
         print(response)
 
     return progress
+
+
+def end_messif_job(job_id: str, phase: str) -> None:
+    url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/end_job'
+
+    try:
+        req = requests.get(url, params={'job_id': job_id})
+        print('Ending search on ', req.url)
+    except requests.exceptions.RequestException:
+        raise RuntimeError('MESSIF not responding')
