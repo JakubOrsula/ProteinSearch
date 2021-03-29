@@ -104,24 +104,23 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
 
     messif_ids = [int(record['_id']) for record in response['answer_records']]
     try:
+        statistics = {
+            'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
+            'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
+            'pivotTime': response['query_record']['pivotDistTimes'],
+        }
         if phase in ['sketches_small', 'sketches_large']:
-            statistics = {
-                'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
-                'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
-                'pivotTime': response['query_record']['pivotDistTimes'],
+            statistics.update({
                 'searchDistCountTotal': 0,
                 'searchDistCountCached': 0,
                 'searchTime': response['statistics']['OperationTime'],
-            }
+            })
         else:
-            statistics = {
-                'pivotDistCountTotal': response['query_record']['pivotDistCountTotal'],
-                'pivotDistCountCached': response['query_record']['pivotDistCountCached'],
-                'pivotTime': response['query_record']['pivotDistTimes'],
-                'searchDistCountTotal': response['query_record']['DistanceComputations'],
-                'searchDistCountCached': response['query_record']['DistanceComputations.Savings'],
+            statistics.update({
+                'searchDistCountTotal': response['query_record']['searchDistCountTotal'],
+                'searchDistCountCached': response['query_record']['searchDistCountCached'],
                 'searchTime': response['statistics']['OperationTime'] - response['query_record']['pivotDistTimes'],
-            }
+            })
     except KeyError:
         print(response)
         raise RuntimeError('MESSIF returned an unexpected response')
