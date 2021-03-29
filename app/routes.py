@@ -9,14 +9,10 @@ from . import application
 from .config import *
 from .computation import *
 
-computation_results = {}
-db_stats = {}
-
 
 @application.route('/', methods=['GET', 'POST'])
 def index():
-    global db_stats
-    if not db_stats:
+    if not application.db_stats:
         conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
         c = conn.cursor()
 
@@ -33,10 +29,10 @@ def index():
         c.close()
         conn.close()
 
-        db_stats = {'protein_count': protein_count, 'chain_count': chain_count, 'updated': last_update}
+        application.db_stats = {'protein_count': protein_count, 'chain_count': chain_count, 'updated': last_update}
 
     if request.method == 'GET':
-        return render_template('index.html', **db_stats)
+        return render_template('index.html', **application.db_stats)
 
     if 'select_pdb_id' in request.form:
         try:
@@ -44,37 +40,37 @@ def index():
             job_id, chains = prepare_indexed_chain(pdb_id)
         except RuntimeError:
             flash('Incorrect PDB ID')
-            return render_template('index.html', **db_stats)
+            return render_template('index.html', **application.db_stats)
         name = get_names([pdb_id])[pdb_id]
         return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=pdb_id,
-                               uploaded=False, name=name, **db_stats)
+                               uploaded=False, name=name, **application.db_stats)
     elif 'selected' in request.form:
         pdb_id = request.form['selected']
         try:
             job_id, chains = prepare_indexed_chain(pdb_id)
         except RuntimeError as e:
             flash(f'Internal error: {e}')
-            return render_template('index.html', **db_stats)
+            return render_template('index.html', **application.db_stats)
         except FileNotFoundError:
             flash('Internal error: Required source file not found.')
-            return render_template('index.html', **db_stats)
+            return render_template('index.html', **application.db_stats)
 
         name = get_names([pdb_id])[pdb_id]
         return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=pdb_id,
-                               uploaded=False, name=name, **db_stats)
+                               uploaded=False, name=name, **application.db_stats)
     elif 'upload' in request.form:
         try:
             job_id, chains = process_input(request)
         except RuntimeError as e:
             flash(e)
-            return render_template('index.html', **db_stats)
+            return render_template('index.html', **application.db_stats)
 
         filename = request.files['file'].filename
         return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=filename,
-                               uploaded=True, **db_stats)
+                               uploaded=True, **application.db_stats)
     else:
         flash('Unknown error')
-        return render_template('index.html', **db_stats)
+        return render_template('index.html', **application.db_stats)
 
 
 @application.route('/search', methods=['POST'])
@@ -89,13 +85,13 @@ def search():
     else:
         query = f'{name}:{chain}'
 
-    computation_results[job_id] = {
+    application.computation_results[job_id] = application.mp_manager.dict({
         'query': query,
         'radius': radius,
         'name': name,
         'chain': chain,
         'num_results': num_results,
-    }
+    })
 
     return redirect(url_for('results', job_id=job_id, chain=chain, name=name))
 
@@ -154,9 +150,12 @@ def get_image():
 
 
 def results_event_stream(job_id: str) -> Generator[str, None, None]:
-    job_data = computation_results[job_id]
+    def set_niceness(val: int):
+        os.nice(val)
 
-    executor = concurrent.futures.ProcessPoolExecutor()
+    job_data = application.computation_results[job_id]
+
+    executor = concurrent.futures.ProcessPoolExecutor(initializer=set_niceness, initargs=(19,))
     messif_future = {'sketches_small': executor.submit(get_results_messif, job_data['query'], -1,
                                                        job_data['num_results'], 'sketches_small', job_id),
                      'sketches_large': None,
@@ -192,33 +191,32 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
                 res_data['sketches_small_status'] = 'ERROR'
                 res_data['error_message'] = str(e)
 
-            if messif_future['sketches_large'] is not None and messif_future['sketches_large'].done():
-                try:
-                    res_data['chain_ids'], stats = messif_future['sketches_large'].result()
-                    res_data['sketches_large_statistics'] = stats
+        if messif_future['sketches_large'] is not None and messif_future['sketches_large'].done():
+            try:
+                res_data['chain_ids'], stats = messif_future['sketches_large'].result()
+                res_data['sketches_large_statistics'] = stats
 
-                    res_data['sketches_large_status'] = 'DONE'
-                    res_data['full_status'] = 'COMPUTING'
+                res_data['sketches_large_status'] = 'DONE'
+                res_data['full_status'] = 'COMPUTING'
 
-                    if messif_future['full'] is None:
-                        messif_future['full'] = executor.submit(get_results_messif, job_data['query'],
-                                                                job_data['radius'],
-                                                                job_data['num_results'], 'full', job_id)
+                if messif_future['full'] is None:
+                    messif_future['full'] = executor.submit(get_results_messif, job_data['query'], job_data['radius'],
+                                                            job_data['num_results'], 'full', job_id)
 
-                except RuntimeError as e:
-                    res_data['status'] = 'ERROR'
-                    res_data['sketches_large_status'] = 'ERROR'
-                    res_data['error_message'] = str(e)
+            except RuntimeError as e:
+                res_data['status'] = 'ERROR'
+                res_data['sketches_large_status'] = 'ERROR'
+                res_data['error_message'] = str(e)
 
-                if messif_future['full'] is not None and messif_future['full'].done():
-                    try:
-                        res_data['chain_ids'], stats = messif_future['full'].result()
-                        res_data['full_status'] = 'DONE'
-                        res_data['full_statistics'] = stats
-                    except RuntimeError as e:
-                        res_data['status'] = 'ERROR'
-                        res_data['full_status'] = 'ERROR'
-                        res_data['error_message'] = str(e)
+        if messif_future['full'] is not None and messif_future['full'].done():
+            try:
+                res_data['chain_ids'], stats = messif_future['full'].result()
+                res_data['full_status'] = 'DONE'
+                res_data['full_statistics'] = stats
+            except RuntimeError as e:
+                res_data['status'] = 'ERROR'
+                res_data['full_status'] = 'ERROR'
+                res_data['error_message'] = str(e)
 
         running_phase = None
         for phase in ['sketches_small', 'sketches_large', 'full']:
@@ -265,12 +263,10 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
         res_data['statistics'] = statistics
         res_data['completed'] = completed
-        res_data['total'] = len(res_data['chain_ids'])
 
         if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
             res_data['status'] = 'FINISHED'
 
-        job_data['res_data'] = res_data
         if json.dumps(res_data) != json.dumps(sent_data):
             timer = 0
             to_send = copy.deepcopy(res_data)
@@ -292,7 +288,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
             break
 
     print(f'Stream ended for job_id = {job_id}')
-
+    application.computation_results[job_id]['res_data'] = res_data
     executor.shutdown()
 
 
@@ -305,7 +301,7 @@ def stream() -> Response:
 @application.route('/save_query')
 def save_query():
     job_id: str = request.args.get('job_id')
-    job_data = computation_results[job_id]
+    job_data = application.computation_results[job_id]
     statistics = job_data['res_data']
 
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
