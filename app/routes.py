@@ -1,9 +1,10 @@
-from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for, Response
+from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for, Response, abort
 import os
 import concurrent.futures
 import python_distance
-from typing import Generator
+from typing import Generator, Union
 import copy
+import re
 import sys
 
 from . import application
@@ -38,6 +39,8 @@ def index():
     if 'select_pdb_id' in request.form:
         try:
             pdb_id = request.form['pdbid'].upper()
+            if not re.match('^[a-z0-9]{4}$', pdb_id, re.IGNORECASE):
+                raise RuntimeError()
             job_id, chains = prepare_indexed_chain(pdb_id)
         except RuntimeError:
             flash('Incorrect PDB ID')
@@ -98,16 +101,25 @@ def search(job_id: str):
 
 @application.route('/results/<string:job_id>/<string:name>/<string:chain>')
 def results(job_id: str, name: str, chain: str):
+    if job_id not in application.computation_results:
+        abort(404)
+
     return render_template('results.html', query=f'{name}:{chain}', job_id=job_id)
 
 
 @application.route('/details/<string:job_id>/<string:obj>')
 def get_details(job_id: str, obj: str):
+    if job_id not in application.computation_results:
+        abort(404)
+
     return render_template('details.html', object=obj)
 
 
 @application.route('/get_pdb/<string:job_id>/<string:obj>')
 def get_pdb(job_id: str, obj: str):
+    if job_id not in application.computation_results:
+        return jsonify({'error': 'job_id not found'}), 404
+
     if obj == '_query':
         file = 'query.pdb'
     else:
@@ -121,7 +133,10 @@ def get_random_pdbs() -> Response:
 
 
 @application.route('/get_searched_pdbs/<string:query>')
-def get_searched_pdbs(query: str) -> Response:
+def get_searched_pdbs(query: str) -> Union[Response, Tuple]:
+    if not re.match('^[a-z0-9 ]*$', query, re.IGNORECASE):
+        return jsonify({'error': 'Incorrect query.'}), 404
+
     return jsonify(get_names(search_title(query, 100)))
 
 
@@ -132,6 +147,9 @@ def get_protein_names() -> Response:
 
 @application.route('/get_image/<string:job_id>/<string:obj>')
 def get_image(job_id: str, obj: str):
+    if job_id not in application.computation_results:
+        return jsonify({'error': 'job_id not found'}), 404
+
     return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), f'{obj}.aligned.png', cache_timeout=0)
 
 
@@ -291,12 +309,18 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
 
 @application.route('/get_results_stream/<string:job_id>')
-def stream(job_id: str) -> Response:
+def stream(job_id: str) -> Union[Response, Tuple]:
+    if job_id not in application.computation_results:
+        return jsonify({'error': 'job_id not found'}), 404
+
     return Response(results_event_stream(job_id), mimetype='text/event-stream')
 
 
 @application.route('/save_query/<string:job_id>')
 def save_query(job_id: str):
+    if job_id not in application.computation_results:
+        return jsonify({'error': 'job_id not found'}), 404
+
     job_data = application.computation_results[job_id]
     statistics = job_data['res_data']
 
@@ -316,6 +340,9 @@ def save_query(job_id: str):
 
 @application.route('/saved_query/<string:job_id>')
 def saved_query(job_id: str):
+    if job_id not in application.computation_results:
+        abort(404)
+
     dir_exists = os.path.exists(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
@@ -336,10 +363,13 @@ def saved_query(job_id: str):
 
 @application.route('/end_job/<string:job_id>', methods=['GET', 'POST'])
 def end_job(job_id: str):
+    if job_id not in application.computation_results:
+        return jsonify({'error': 'job_id not found'}), 404
+
     application.computation_results[job_id]['_abort'] = True
     return '', 204
 
 
 @application.errorhandler(404)
 def not_found(e):
-    return render_template('404.html')
+    return render_template('404.html'), 404
