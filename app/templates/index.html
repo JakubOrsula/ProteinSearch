@@ -15,6 +15,29 @@
 
 <body>
 
+
+<div class="modal fade" id="protein_select_window" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select protein</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 500px; overflow-y:auto;">
+                <div class="list-group" id="pdbs">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="status" class="mr-auto"></div>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="container p-3">
     <div class="row">
         <div class="col">
@@ -46,7 +69,7 @@
             </p>
             Indexed {{ chain_count }} chains from {{ protein_count }} proteins downloaded from <a
                 href="http://pdbe.org/" rel="noreferrer" target="_blank">PDBe</a>.
-            Last update {{ updated }}.
+            Last update: {{ updated }}.
         </div>
     </div>
     <hr>
@@ -57,14 +80,14 @@
         </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('index') }}">
+    <form method="post" id="protein_form" enctype="multipart/form-data" action="{{ url_for('index') }}">
         <div class="row">
             <div class="col">
                 <fieldset id="fs-input" {% if selected %} disabled {% endif %}>
                     <div class="card-group">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title">Select by PDB ID</h5>
+                                <h5 class="card-title">PDB ID</h5>
                                 <p class="card-text">Select indexed chain by PDB ID.</p>
 
                                 <div class="form-group">
@@ -110,50 +133,42 @@
                 </fieldset>
             </div>
         </div>
+
         <div class="row">
             <div class="col">
                 <fieldset id="fs-search" {% if selected %} disabled {% endif %}>
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Search</h5>
-                            <div class="row">
-                                <div class="col-12 col-xl-5">
-                                    <p class="card-text">Search for indexed proteins by title.</p>
-                                    <div class="row">
-                                        <div class="col-12 pb-2 pb-xl-0 col-xl-2 form-inline">
-                                            <label class="col-form-label" for="search_phrase">Phrase: </label>
-                                        </div>
-                                        <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-7 form-inline">
-                                            <input class="form-control" type="text" id="search_phrase"
-                                                   name="search_phrase" size=20
-                                                   placeholder="Enter at least 3 characters">
-                                        </div>
-                                        <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-3 form-inline">
-                                            <button type="button" id="search_pdb" class="btn btn-primary form-control"
-                                                    disabled>
-                                                Search
-                                            </button>
-                                        </div>
+                    <div class="card-group">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Search</h5>
+                                <p class="card-text">Search for indexed proteins by title.</p>
+                                <div class="row">
+                                    <div class="col-12 pb-2 pb-xl-0 col-xl-2 form-inline">
+                                        <label class="col-form-label" for="search_phrase">Phrase: </label>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <p class="card-text pt-3">Or select few random ones.</p>
-                                        </div>
-                                        <div class="col-12 pt-2 form-inline">
-                                            <button type="button" class="btn btn-primary form-control"
-                                                    id="select_random"
-                                                    name="select_random">
-                                                Offer random
-                                            </button>
-                                        </div>
-                                        <div class="col-12 mt-2" style="min-height: 48px">
-                                            <label class="col-form-label" id="status"></label>
-                                        </div>
+                                    <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-7 form-inline">
+                                        <input class="form-control" type="text" id="search_phrase"
+                                               name="search_phrase" size=20
+                                               placeholder="Enter at least 3 characters">
                                     </div>
-
+                                    <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-3 form-inline">
+                                        <button type="button" id="search_pdb" class="btn btn-primary form-control"
+                                                disabled style="min-width: 80px"> Search
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="col-12 col-xl-7">
-                                    <div class="list-group" id="pdbs" style="max-height: 220px; overflow-y:auto;">
+                            </div>
+
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Random</h5>
+                                <p class="card-text">Let application to offer a few proposals.</p>
+                                <div class="row">
+                                    <div class="col-12 form-inline">
+                                        <button type="button" class="btn btn-primary form-control"
+                                                id="select_random"> Offer random
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -161,10 +176,8 @@
                     </div>
                 </fieldset>
             </div>
-
         </div>
     </form>
-
 
     <div class="row pb-2 pt-3">
         <div class="col">
@@ -186,7 +199,8 @@
                                     <label class="col-form-label" for="chain">Chains: </label>
                                 </div>
                                 <div class="col-12 col-sm-9 form-inline">
-                                    <select class="form-control selectpicker" name="chain" id="chain" data-show-subtext="true">
+                                    <select class="form-control selectpicker" name="chain" id="chain"
+                                            data-show-subtext="true">
                                         {% for id, size in chains | default([], True) %}
                                             <option value="{{ id }}" data-subtext="(size: {{ size }})">{{ id }}</option>
                                         {% endfor %}
@@ -199,12 +213,17 @@
             </div>
         </div>
 
+        <div class="row pb-2 pt-3">
+            <div class="col">
+                <span class="h4">3. Search settings</span>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col">
                 <div class="card">
                     <div class="card-body">
                         <fieldset id="fs-settings" {% if not selected %} disabled {% endif %}>
-                            <h5 class="card-title">Search settings</h5>
                             <div class="row">
                                 <div class="col col-12 col-md-8 col-lg-4 pb-md-2 pb-lg-0">
                                     <label class="col-form-label" for="qscore_range">Minimum Q-score: </label>
@@ -227,10 +246,6 @@
             </div>
         </div>
 
-        <input type="hidden" name="job_id" id="job_id" value="{{ job_id }}">
-        <input type="hidden" name="input_name" id="input_name" value="{{ input_name }}">
-        <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
-
         <div class="row pt-4">
             <div class="col-12 col-sm-4 col-md-3 col-xl-2 pb-2 pb-sm-0">
                 <button class="btn btn-success form-control" type="submit" id="run" {% if not selected %}
@@ -242,6 +257,11 @@
                 <a class="btn btn-dark form-control" href="{{ url_for('index') }}">Reset form</a>
             </div>
         </div>
+
+        <input type="hidden" name="job_id" id="job_id" value="{{ job_id }}">
+        <input type="hidden" name="input_name" id="input_name" value="{{ input_name }}">
+        <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
+
     </form>
 </div>
 

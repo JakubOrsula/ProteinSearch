@@ -52,10 +52,12 @@ function init_index() {
                 success: function (data) {
                     $pdbs.empty();
                     for (const [pdb_id, name] of Object.entries(data)) {
-                        $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
-                                                name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
+                        $pdbs.append(`<button form="protein_form" type="submit"
+                                        class="list-group-item list-group-item-action"
+                                        name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
                     }
-                    $status.html('Showing 10 random proteins as proposals');
+                    $status.html('Showing 10 random proposals.');
+                    $('#protein_select_window').modal();
                 }
             }
         )
@@ -63,22 +65,26 @@ function init_index() {
 
     $search_pdb.on('click', function () {
         const query = $search_input.val().trim();
+        $search_pdb.html('<span id="running" class="spinner-border spinner-border-sm" role="status"></span>');
         $.ajax({
                 url: `/get_searched_pdbs?query=${query}`,
                 success: function (data) {
                     $pdbs.empty();
                     const num_results = Object.keys(data).length;
                     for (const [pdb_id, name] of Object.entries(data)) {
-                        $pdbs.append(`<button type="submit" class="list-group-item list-group-item-action"
-                                                name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
-                        $status.html(`Showing ${num_results} result(s)`);
+                        $pdbs.append(`<button form="protein_form" type="submit"
+                                      class="list-group-item list-group-item-action"
+                                      name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
+                        $status.html(`Showing ${num_results} results.`);
                     }
                     if (num_results === 1000) {
-                        $status.html('Showing first 1000 results');
+                        $status.html('Showing first 1000 results.');
                     }
                     if (num_results === 0) {
-                        $status.html('No results found');
+                        $status.html('No results found.');
                     }
+                    $search_pdb.html('Search');
+                    $('#protein_select_window').modal();
                 }
             }
         )
@@ -198,7 +204,7 @@ function init_results() {
     });
 
     $(window).bind('unload', function () {
-       navigator.sendBeacon(`/end_job?${object_params.toString()}`);
+        navigator.sendBeacon(`/end_job?${object_params.toString()}`);
     });
 
     let $save_query = $('#save_query');
