@@ -39,7 +39,15 @@ function init_index() {
     })
 
     $search_input.on('input', function () {
-        if ($search_input.val().length > 2) {
+        const val = $search_input.val();
+        if (val.match(/^[a-z0-9 ]*$/i)) {
+            $search_input.removeClass('is-invalid');
+        } else {
+            $search_input.addClass('is-invalid');
+            $search_pdb.prop('disabled', true);
+            return;
+        }
+        if (val.length > 2) {
             $search_pdb.prop('disabled', false);
         } else {
             $search_pdb.prop('disabled', true);
@@ -101,7 +109,7 @@ function init_index() {
     $pdbid.on('input', function () {
         const val = $pdbid.val().trim();
         $pdbid.val(val);
-        if (val.length === 4) {
+        if (val.match(/^[a-z0-9]{4}$/i)) {
             $select_pdb_id.prop('disabled', false);
         } else {
             $select_pdb_id.prop('disabled', true);
