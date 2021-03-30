@@ -39,8 +39,12 @@ def get_names(pdb_ids: List[str]) -> Dict[str, str]:
 def search_title(query: str, limit: int) -> List[str]:
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
-    c.execute(f'SELECT id FROM proteinId WHERE id IN (SELECT pdbId FROM protein WHERE name LIKE %s) LIMIT %s',
-              (f'%{query}%', limit))
+    words = ' '.join(f'+{word}' for word in query.split())
+    sql_query = (f'SELECT id FROM proteinId WHERE id IN '
+                 f'(SELECT pdbId FROM protein WHERE MATCH(name) AGAINST (%s IN BOOLEAN MODE)) '
+                 f'LIMIT %s')
+
+    c.execute(sql_query, (words, limit))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
     c.close()
     conn.close()

@@ -77,8 +77,8 @@ function init_index() {
                                       name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
                         $status.html(`Showing ${num_results} results.`);
                     }
-                    if (num_results === 1000) {
-                        $status.html('Showing first 1000 results.');
+                    if (num_results === 100) {
+                        $status.html('Showing only the first 100 results. Please try to narrow your query.');
                     }
                     if (num_results === 0) {
                         $status.html('No results found.');

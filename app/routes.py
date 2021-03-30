@@ -134,7 +134,7 @@ def get_random_pdbs() -> Response:
 @application.route('/get_searched_pdbs')
 def get_searched_pdbs() -> Response:
     query = request.args.get('query')
-    return jsonify(get_names(search_title(query, 1000)))
+    return jsonify(get_names(search_title(query, 100)))
 
 
 @application.route('/get_protein_names', methods=['POST'])
