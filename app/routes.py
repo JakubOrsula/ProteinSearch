@@ -43,8 +43,8 @@ def index():
             flash('Incorrect PDB ID')
             return render_template('index.html', **application.db_stats)
         name = get_names([pdb_id])[pdb_id]
-        return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=pdb_id,
-                               uploaded=False, name=name, **application.db_stats)
+        return redirect(url_for('index', _anchor='select_chain_phase', chains=chains, selected=True, job_id=job_id,
+                                input_name=pdb_id, uploaded=False, name=name, **application.db_stats))
     elif 'selected' in request.form:
         pdb_id = request.form['selected']
         try:
@@ -57,8 +57,8 @@ def index():
             return render_template('index.html', **application.db_stats)
 
         name = get_names([pdb_id])[pdb_id]
-        return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=pdb_id,
-                               uploaded=False, name=name, **application.db_stats)
+        return redirect(url_for('index', _anchor='select_chain_phase', chains=chains, selected=True, job_id=job_id,
+                                input_name=pdb_id, uploaded=False, name=name, **application.db_stats))
     elif 'upload' in request.form:
         try:
             job_id, chains = process_input(request)
@@ -67,8 +67,8 @@ def index():
             return render_template('index.html', **application.db_stats)
 
         filename = request.files['file'].filename
-        return render_template('index.html', chains=chains, selected=True, job_id=job_id, input_name=filename,
-                               uploaded=True, **application.db_stats)
+        return redirect(url_for('index', _anchor='select_chain_phase', chains=chains, selected=True, job_id=job_id,
+                                input_name=filename, uploaded=True, **application.db_stats))
     else:
         flash('Unknown error')
         return render_template('index.html', **application.db_stats)
