@@ -67,7 +67,7 @@ function init_index() {
         const query = $search_input.val().trim();
         $search_pdb.html('<span id="running" class="spinner-border spinner-border-sm" role="status"></span>');
         $.ajax({
-                url: `/get_searched_pdbs?query=${query}`,
+                url: `/get_searched_pdbs/${query}`,
                 success: function (data) {
                     $pdbs.empty();
                     const num_results = Object.keys(data).length;
@@ -128,12 +128,7 @@ function fetch_titles(pdbids) {
 
 
 function init_results() {
-    const parameters_string = window.location.search;
-    const parameters = new URLSearchParams(parameters_string);
-
-    let object_params = new URLSearchParams();
-    const job_id = parameters.get('job_id');
-    object_params.set('job_id', job_id);
+    const job_id = window.location.pathname.split('/')[2];
 
     let statusTable = $('#messif_stats').DataTable({
         ordering: false,
@@ -204,7 +199,7 @@ function init_results() {
     });
 
     $(window).bind('unload', function () {
-        navigator.sendBeacon(`/end_job?${object_params.toString()}`);
+        navigator.sendBeacon(`/end_job/${job_id}`);
     });
 
     let $save_query = $('#save_query');
@@ -220,7 +215,7 @@ function init_results() {
 
     $save_query.on('click', function () {
         $.ajax({
-            url: `/save_query?${object_params.toString()}`,
+            url: `/save_query/${job_id}`,
             success: function (data) {
                 $saved_query_url.val(data);
             }
@@ -242,7 +237,7 @@ function init_results() {
 
     $stop_search.on('click', function () {
         $.ajax({
-            url: `/end_job?${object_params.toString()}`,
+            url: `/end_job/${job_id}`,
         });
     });
 
@@ -357,11 +352,7 @@ function init_results() {
 
         let idx = 0;
         for (const res of data['statistics']) {
-            let [pdbid, chain] = res['object'].split(':');
-            let details_params = new URLSearchParams();
-            details_params.set('job_id', job_id);
-            details_params.set('object', res['object']);
-            details_params.set('chain', chain);
+            const pdbid = res['object'].split(':')[0];
             let name = localStorage.getItem(pdbid) === null ? '?' : localStorage.getItem(pdbid);
 
             let qscore = '?';
@@ -375,9 +366,9 @@ function init_results() {
                 rmsd = res['rmsd'].toFixed(3);
                 aligned = res['aligned'];
                 seq_id = res['seq_id'].toFixed(3);
-                link = `<a href="/details?${details_params.toString()}" target="_blank">
+                link = `<a href="/details/${job_id}/${res['object']}" target="_blank">
                                 <div class="zoom-text">Show 3D visualization</div>
-                                <img src="/get_image?job_id=${job_id}&object=${res['object']}"
+                                <img src="/get_image/${job_id}/${res['object']}"
                                      alt="Alignment thumbnail of ${res['object']}">
                                 </a>`;
             }
@@ -393,8 +384,8 @@ function init_results() {
         resultsTable.columns.adjust().draw();
     }
 
-    const eventSource = new EventSource(`/get_results_stream?${object_params.toString()}`);
-    if (window.location.pathname === '/results') {
+    const eventSource = new EventSource(`/get_results_stream/${job_id}`);
+    if (window.location.pathname.startsWith('/results')) {
         eventSource.onmessage = function (e) {
             const data = JSON.parse(e.data);
             update_content(data);
@@ -408,17 +399,12 @@ function init_results() {
 
 
 function load_molecule(plugin, job_id, object, index) {
-
-    let object_params = new URLSearchParams();
-    object_params.set('job_id', job_id);
-    object_params.set('object', object);
-
     const id = object === '_query' ? 'query' : object;
 
     plugin.loadMolecule({
         id: id,
         format: 'pdb',
-        url: `/get_pdb?${object_params.toString()}`,
+        url: `/get_pdb/${job_id}/${object}`,
         modelRef: 'object-model' + index,
         doNotCreateVisual: true
     }).then(
@@ -452,10 +438,9 @@ function init_details() {
         },
     });
 
-    const parameters_string = window.location.search;
-    const parameters = new URLSearchParams(parameters_string);
-    const object = parameters.get('object');
-    const job_id = parameters.get('job_id');
+    const parts = window.location.pathname.split('/')
+    const job_id = parts[2];
+    const object = parts[3];
 
     load_molecule(plugin, job_id, '_query', 0);
     load_molecule(plugin, job_id, object, 1);
@@ -466,9 +451,9 @@ $(function () {
     const page = window.location.pathname;
     if (page === '/') {
         init_index();
-    } else if (page === '/results' || page === '/saved_query') {
+    } else if (page.startsWith('/results') || page.startsWith('/saved_query')) {
         init_results();
-    } else if (page === '/details') {
+    } else if (page.startsWith('/details')) {
         init_details();
     }
 })

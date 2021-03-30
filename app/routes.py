@@ -74,9 +74,8 @@ def index():
         return render_template('index.html', **application.db_stats)
 
 
-@application.route('/search', methods=['POST'])
-def search():
-    job_id: str = request.form['job_id']
+@application.route('/search/<string:job_id>', methods=['POST'])
+def search(job_id: str):
     chain: str = request.form['chain']
     name: str = request.form['input_name']
     radius: float = 1 - float(request.form['qscore_range'])
@@ -97,28 +96,18 @@ def search():
     return redirect(url_for('results', job_id=job_id, chain=chain, name=name))
 
 
-@application.route('/results')
-def results():
-    job_id: str = request.args.get('job_id')
-    chain: str = request.args.get('chain')
-    name: str = request.args.get('name')
-
+@application.route('/results/<string:job_id>/<string:name>/<string:chain>')
+def results(job_id: str, name: str, chain: str):
     return render_template('results.html', query=f'{name}:{chain}', job_id=job_id)
 
 
-@application.route('/details')
-def get_details():
-    chain: str = request.args.get('chain')
-    obj: str = request.args.get('object')
-
-    return render_template('details.html', object=obj, query_chain=chain)
+@application.route('/details/<string:job_id>/<string:obj>')
+def get_details(job_id: str, obj: str):
+    return render_template('details.html', object=obj)
 
 
-@application.route('/get_pdb')
-def get_pdb():
-    job_id: str = request.args.get('job_id')
-    obj: str = request.args.get('object')
-
+@application.route('/get_pdb/<string:job_id>/<string:obj>')
+def get_pdb(job_id: str, obj: str):
     if obj == '_query':
         file = 'query.pdb'
     else:
@@ -131,9 +120,8 @@ def get_random_pdbs() -> Response:
     return jsonify(get_names(get_random_pdb_ids(10)))
 
 
-@application.route('/get_searched_pdbs')
-def get_searched_pdbs() -> Response:
-    query = request.args.get('query')
+@application.route('/get_searched_pdbs/<string:query>')
+def get_searched_pdbs(query: str) -> Response:
     return jsonify(get_names(search_title(query, 100)))
 
 
@@ -142,11 +130,8 @@ def get_protein_names() -> Response:
     return jsonify(get_names(request.get_json()))
 
 
-@application.route('/get_image')
-def get_image():
-    job_id: str = request.args.get('job_id')
-    obj: str = request.args.get('object')
-
+@application.route('/get_image/<string:job_id>/<string:obj>')
+def get_image(job_id: str, obj: str):
     return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), f'{obj}.aligned.png', cache_timeout=0)
 
 
@@ -305,15 +290,13 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         executor.shutdown()
 
 
-@application.route('/get_results_stream')
-def stream() -> Response:
-    job_id: str = request.args.get('job_id')
+@application.route('/get_results_stream/<string:job_id>')
+def stream(job_id: str) -> Response:
     return Response(results_event_stream(job_id), mimetype='text/event-stream')
 
 
-@application.route('/save_query')
-def save_query():
-    job_id: str = request.args.get('job_id')
+@application.route('/save_query/<string:job_id>')
+def save_query(job_id: str):
     job_data = application.computation_results[job_id]
     statistics = job_data['res_data']
 
@@ -328,13 +311,11 @@ def save_query():
     c.close()
     conn.close()
 
-    return Response(f'{request.url_root}saved_query?job_id={job_id}')
+    return Response(f'{request.url_root}saved_query/{job_id}')
 
 
-@application.route('/saved_query')
-def saved_query():
-    job_id: str = request.args.get('job_id')
-
+@application.route('/saved_query/<string:job_id>')
+def saved_query(job_id: str):
     dir_exists = os.path.exists(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
@@ -353,8 +334,7 @@ def saved_query():
     return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added)
 
 
-@application.route('/end_job', methods=['GET', 'POST'])
-def end_job():
-    job_id: str = request.args.get('job_id')
+@application.route('/end_job/<string:job_id>', methods=['GET', 'POST'])
+def end_job(job_id: str):
     application.computation_results[job_id]['_abort'] = True
     return '', 204
