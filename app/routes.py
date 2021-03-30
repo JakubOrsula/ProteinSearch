@@ -4,6 +4,7 @@ import concurrent.futures
 import python_distance
 from typing import Generator
 import copy
+import sys
 
 from . import application
 from .config import *
@@ -297,7 +298,11 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
             end_messif_job(job_id, phase)
 
     application.computation_results[job_id]['res_data'] = res_data
-    executor.shutdown(cancel_futures=True)
+
+    if sys.version_info.major == 3 and sys.version_info.minor >= 9:
+        executor.shutdown(cancel_futures=True)
+    else:
+        executor.shutdown()
 
 
 @application.route('/get_results_stream')
