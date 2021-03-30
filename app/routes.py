@@ -338,3 +338,8 @@ def saved_query(job_id: str):
 def end_job(job_id: str):
     application.computation_results[job_id]['_abort'] = True
     return '', 204
+
+
+@application.errorhandler(404)
+def not_found(e):
+    return render_template('404.html')
