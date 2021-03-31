@@ -282,7 +282,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
             if json.dumps(sent_data.get('statistics', [])) == json.dumps(to_send['statistics']):
                 del to_send['statistics']
 
-            sent_data = to_send
+            sent_data = copy.deepcopy(res_data)
 
             yield 'data: ' + json.dumps(to_send) + '\n\n'
         else:
