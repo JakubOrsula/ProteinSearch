@@ -109,9 +109,6 @@ def results(job_id: str, name: str, chain: str):
 
 @application.route('/details/<string:job_id>/<string:obj>')
 def get_details(job_id: str, obj: str):
-    if job_id not in application.computation_results:
-        abort(404)
-
     return render_template('details.html', object=obj)
 
 
