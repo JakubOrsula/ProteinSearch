@@ -117,9 +117,6 @@ def get_details(job_id: str, obj: str):
 
 @application.route('/get_pdb/<string:job_id>/<string:obj>')
 def get_pdb(job_id: str, obj: str):
-    if job_id not in application.computation_results:
-        return jsonify({'error': 'job_id not found'}), 404
-
     if obj == '_query':
         file = 'query.pdb'
     else:
@@ -147,9 +144,6 @@ def get_protein_names() -> Response:
 
 @application.route('/get_image/<string:job_id>/<string:obj>')
 def get_image(job_id: str, obj: str):
-    if job_id not in application.computation_results:
-        return jsonify({'error': 'job_id not found'}), 404
-
     return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), f'{obj}.aligned.png', cache_timeout=0)
 
 
