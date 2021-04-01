@@ -209,7 +209,7 @@ def get_progress(job_id: str, phase: str) -> dict:
                 'pivotDistCountCached': response['pivotDistCountCached'],
                 'pivotDistCountComputed': max(0, response['pivotDistCountComputed'] - response['pivotDistCountCached'])
             })
-            if phase == 'full' and response['pivotTime'] != -1:
+            if phase == 'full' and response['pivotTime'] is not None:
                 progress.update({
                     'pivotTime': response['pivotTime'],
                     'searchDistCountExpected': response['searchDistCountExpected'],
@@ -218,8 +218,9 @@ def get_progress(job_id: str, phase: str) -> dict:
                         'searchDistCountCached'])
                 })
     except KeyError:
-        print('Incorrect response when calling ', url)
-        print(response)
+        message = f'Incorrect response when calling {url}'
+        print(message)
+        raise RuntimeError(message)
 
     return progress
 
