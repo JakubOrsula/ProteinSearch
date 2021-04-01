@@ -340,9 +340,6 @@ def save_query(job_id: str):
 
 @application.route('/saved_query/<string:job_id>')
 def saved_query(job_id: str):
-    if job_id not in application.computation_results:
-        abort(404)
-
     dir_exists = os.path.exists(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
