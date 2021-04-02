@@ -151,12 +151,14 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
     job_data = application.computation_results[job_id]
 
     executor = concurrent.futures.ProcessPoolExecutor(initializer=set_niceness, initargs=(19,))
+
+    query_raw_pdb = executor.submit(prepare_PDB_wrapper, job_data['query'], RAW_PDB_DIR,
+                                    os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
+
     messif_future = {'sketches_small': executor.submit(get_results_messif, job_data['query'], -1,
                                                        job_data['num_results'], 'sketches_small', job_id),
                      'sketches_large': None,
                      'full': None}
-
-    python_distance.prepare_PDB(job_data['query'], RAW_PDB_DIR, os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), None)
 
     result_stats = {}
     sent_data = {}
@@ -228,9 +230,10 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
         query = job_data['query']
         min_qscore = 1 - job_data['radius']
-        for chain_id in res_data['chain_ids']:
-            if chain_id not in result_stats:
-                result_stats[chain_id] = executor.submit(get_stats, query, chain_id, min_qscore, job_id)
+        if query_raw_pdb.done():
+            for chain_id in res_data['chain_ids']:
+                if chain_id not in result_stats:
+                    result_stats[chain_id] = executor.submit(get_stats, query, chain_id, min_qscore, job_id)
 
         statistics = []
         completed = 0

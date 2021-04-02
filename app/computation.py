@@ -233,3 +233,7 @@ def end_messif_job(job_id: str, phase: str) -> None:
         print('Ending search on ', req.url)
     except requests.exceptions.RequestException:
         raise RuntimeError('MESSIF not responding')
+
+
+def prepare_PDB_wrapper(query: str, pdb_dir: str, output_dir: str) -> None:
+    python_distance.prepare_PDB(query, pdb_dir, output_dir, None)
