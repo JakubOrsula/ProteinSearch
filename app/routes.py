@@ -237,26 +237,27 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
         statistics = []
         completed = 0
-        for chain_id in res_data['chain_ids']:
-            job = result_stats[chain_id]
-            if job.done():
-                completed += 1
-                qscore, rmsd, seq_id, aligned = job.result()
-                if qscore < 1 - job_data['radius']:
-                    continue
-                statistics.append({'object': chain_id,
-                                   'qscore': round(qscore, 3),
-                                   'rmsd': round(rmsd, 3),
-                                   'seq_id': round(seq_id, 3),
-                                   'aligned': aligned})
-            else:
-                statistics.append({
-                    'object': chain_id,
-                    'qscore': -1,
-                    'rmsd': None,
-                    'seq_id': None,
-                    'aligned': None,
-                })
+        if query_raw_pdb.done():
+            for chain_id in res_data['chain_ids']:
+                job = result_stats[chain_id]
+                if job.done():
+                    completed += 1
+                    qscore, rmsd, seq_id, aligned = job.result()
+                    if qscore < 1 - job_data['radius']:
+                        continue
+                    statistics.append({'object': chain_id,
+                                       'qscore': round(qscore, 3),
+                                       'rmsd': round(rmsd, 3),
+                                       'seq_id': round(seq_id, 3),
+                                       'aligned': aligned})
+                else:
+                    statistics.append({
+                        'object': chain_id,
+                        'qscore': -1,
+                        'rmsd': None,
+                        'seq_id': None,
+                        'aligned': None,
+                    })
 
         statistics = sorted(statistics, key=lambda x: x['qscore'], reverse=True)
         res_data['statistics'] = statistics
