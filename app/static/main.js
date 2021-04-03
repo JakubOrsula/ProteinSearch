@@ -263,6 +263,7 @@ function init_results() {
 
         if (data['status'] === 'FINISHED') {
             $save_query.toggle(true);
+            $('#total_time').html(`Total time: ${format_time(data['total_time'])}`);
             $('.dataTables_empty').html('No similar protein chains found in the database.')
         } else if (data['status'] === 'ABORTED') {
             let $running = $('#running');
@@ -285,6 +286,8 @@ function init_results() {
                     search_part = `${stats['searchDistCountTotal']} (computed:
                                             ${stats['searchDistCountTotal'] - stats['searchDistCountCached']}, 
                                             cached: ${stats['searchDistCountCached']})`;
+
+                    $('#search_time').html(`Search time: ${format_time(data['search_time'])}`);
                 }
 
                 row_data.push('<i class="bi bi-check"></i>',

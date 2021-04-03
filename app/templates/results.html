@@ -60,7 +60,7 @@
                     <th rowspan="2" class="align-middle">Status</th>
                     <th colspan="2" class="text-center">Query chain vs. pivot chains</th>
                     <th colspan="2" class="text-center">Search</th>
-                    <th rowspan="2" class="align-middle">Total time</th>
+                    <th rowspan="2" class="align-middle">Phase time</th>
                 </tr>
                 <tr>
                     <th class="text-center">Distance computations</th>
@@ -72,9 +72,9 @@
             </table>
         </div>
     </div>
-    {% if not saved %}
-        <div class="row mt-2">
-            <div class="col-12 pb-2 pb-sm-0 form-inline">
+    <div class="row mt-2" style="max-width: 1300px">
+        <div class="col-12 pb-2 pb-sm-0 form-inline">
+            {% if not saved %}
                 <div class="form-group">
                     <button class="btn btn-danger" id="stop_search">Stop search</button>
                 </div>
@@ -86,15 +86,17 @@
                             id="save_query">Share results
                     </button>
                 </div>
-            </div>
-        </div>
-    {% else %}
-        <div class="row mt-2">
-            <div class="col-12 pb-2 pb-sm-0 form-inline">
+            {% else %}
                 <a href="/" class="btn btn-primary">Try new search</a>
+            {% endif %}
+            <div class="ml-auto">
+                <b id="search_time"></b>
+            </div>
+            <div class="ml-3 text-right" style="width: 200px">
+                <b id="total_time"></b>
             </div>
         </div>
-    {% endif %}
+    </div>
     <div class="row flex-fill">
         <div class="col d-flex flex-column">
             <div id="resize_wrapper">

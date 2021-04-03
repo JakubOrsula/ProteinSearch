@@ -6,6 +6,7 @@ from typing import Generator, Union
 import copy
 import re
 import sys
+import time
 
 from . import application
 from .config import *
@@ -180,6 +181,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
     executor = concurrent.futures.ProcessPoolExecutor(initializer=set_niceness, initargs=(19,))
 
+    start_time = time.time()
+
     query_raw_pdb = executor.submit(prepare_PDB_wrapper, job_data['query'], RAW_PDB_DIR,
                                     os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
 
@@ -191,6 +194,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
     result_stats = {}
     sent_data = {}
     timer = 0
+    end_time = None
     print(f'Stream started for job_id = {job_id}')
     while True:
         res_data = {'chain_ids': [],
@@ -291,7 +295,16 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         res_data['statistics'] = statistics
         res_data['completed'] = completed
 
+        if res_data['full_status'] == 'DONE':
+            res_data['search_time'] = 0
+            for phase in ['sketches_small', 'sketches_large', 'full']:
+                stats = res_data[f'{phase}_statistics']
+                res_data['search_time'] += stats['pivotTime'] + stats['searchTime']
+
         if res_data['full_status'] == 'DONE' and completed == len(res_data['chain_ids']):
+            if end_time is None:
+                end_time = time.time()
+            res_data['total_time'] = int((time.time() - start_time) * 1000)
             res_data['status'] = 'FINISHED'
 
         if '_abort' in job_data:
