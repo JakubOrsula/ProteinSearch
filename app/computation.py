@@ -30,7 +30,9 @@ def get_names(pdb_ids: List[str]) -> Dict[str, str]:
     names = {}
     for pdb_id in pdb_ids:
         c.execute(f'SELECT name FROM protein WHERE pdbId = %s', (pdb_id,))
-        names[pdb_id] = c.fetchall()[0][0]
+        data = c.fetchall()
+        if data:
+            names[pdb_id] = data[0][0]
     c.close()
     conn.close()
     return names
