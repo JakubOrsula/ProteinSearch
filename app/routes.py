@@ -104,7 +104,8 @@ def results(job_id: str, name: str, chain: str):
     if job_id not in application.computation_results:
         abort(404)
 
-    return render_template('results.html', query=f'{name}:{chain}', job_id=job_id)
+    title = get_names([name]).get(name, '(uploaded structure)')
+    return render_template('results.html', query=f'{name}:{chain}', job_id=job_id, title=title)
 
 
 @application.route('/details/<string:job_id>/<string:obj>')
@@ -349,8 +350,10 @@ def saved_query(job_id: str):
         return Response('Invalid link.')
 
     name, chain, radius, k, statistics, added = data[0]
+    title = get_names([name]).get(name, '(uploaded structure)')
 
-    return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added)
+    return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added,
+                           title=title)
 
 
 @application.route('/end_job/<string:job_id>', methods=['GET', 'POST'])
