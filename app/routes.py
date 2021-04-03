@@ -110,7 +110,34 @@ def results(job_id: str, name: str, chain: str):
 
 @application.route('/details/<string:job_id>/<string:obj>')
 def get_details(job_id: str, obj: str):
-    return render_template('details.html', object=obj)
+    if job_id in application.computation_results:
+        job_data = application.computation_results[job_id]
+        name = job_data['name']
+        chain = job_data['chain']
+        statistics = job_data['res_data']['statistics']
+    else:
+        conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+        c = conn.cursor()
+
+        sql_select = 'SELECT name, chain, statistics FROM savedQueries WHERE job_id = %s'
+        c.execute(sql_select, (job_id,))
+        data = c.fetchall()
+        c.close()
+        conn.close()
+        if not data:
+            abort(404)
+        name, chain, statistics = data[0]
+        statistics = json.loads(statistics)['statistics']
+
+    obj_stats = next((stat for stat in statistics if stat['object'] == obj), None)
+
+    other_pdb = obj.split(':')[0]
+    names = get_names([name, other_pdb])
+    query_title = names.get(name, '(uploaded structure)')
+    obj_title = names[other_pdb]
+
+    return render_template('details.html', query=f'{name}:{chain}', query_title=query_title, obj_title=obj_title,
+                           obj_stats=obj_stats)
 
 
 @application.route('/get_pdb/<string:job_id>/<string:obj>')
@@ -271,6 +298,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
             print('User aborted the search')
             res_data['status'] = 'ABORTED'
 
+        application.computation_results[job_id]['res_data'] = res_data
+
         if json.dumps(res_data) != json.dumps(sent_data):
             timer = 0
             to_send = copy.deepcopy(res_data)
@@ -295,8 +324,6 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
     for phase in ['sketches_small', 'sketches_large', 'full']:
         if res_data[f'{phase}_status'] == 'COMPUTING':
             end_messif_job(job_id, phase)
-
-    application.computation_results[job_id]['res_data'] = res_data
 
     if sys.version_info.major == 3 and sys.version_info.minor >= 9:
         executor.shutdown(cancel_futures=True)
@@ -340,7 +367,7 @@ def saved_query(job_id: str):
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
-    sql_select = 'SELECT name, chain, radius, k, statistics, added FROM savedQueries WHERE job_id = %s'
+    sql_select = 'SELECT name, chain, statistics, added FROM savedQueries WHERE job_id = %s'
     c.execute(sql_select, (job_id,))
     data = c.fetchall()
     c.close()
@@ -349,7 +376,7 @@ def saved_query(job_id: str):
     if not dir_exists or not data:
         return Response('Invalid link.')
 
-    name, chain, radius, k, statistics, added = data[0]
+    name, chain, statistics, added = data[0]
     title = get_names([name]).get(name, '(uploaded structure)')
 
     return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added,

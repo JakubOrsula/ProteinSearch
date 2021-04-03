@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="ProteinSearch">
-    <title>Protein Chain Similarity Search - Details (query chain {{ query_chain }} and {{ object }})</title>
+    <title>Protein Chain Similarity Search - Details of {{ query }} and {{ obj_stats['object'] }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
           integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.0/font/bootstrap-icons.css">
@@ -24,9 +24,38 @@
         </div>
     </div>
     <hr>
-    <div class="row">
-        <div class="col">
-            Details about the superposition of query chain and {{ object }}
+    <div class="row flex-fill">
+        <div class="col d-flex flex-column">
+            <div id="resize_wrapper">
+                <table class="table table-striped table-bordered" style="width:100%; font-size: 14px" id="table">
+                    <caption class="h5" style="caption-side: top">Query: {{ query }}
+                        <span class="ml-3" style="font-size: 16px">{{ query_title }}</span>
+                    </caption>
+                    <thead>
+                    <tr>
+                        <th>Chain ID</th>
+                        <th>Protein (link to PDBe)</th>
+                        <th>Q-score</th>
+                        <th>RMSD</th>
+                        <th>Aligned res.</th>
+                        <th>Seq. identity</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{ obj_stats['object'] }}</td>
+                        <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ obj_stats['object'].split(':')[0] }}"
+                               target="_blank" rel="noreferrer">
+                            <div style="max-width: 600px">{{ obj_title }}</div>
+                        </a></td>
+                        <td>{{ obj_stats['qscore'] }}</td>
+                        <td>{{ obj_stats['rmsd'] }}</td>
+                        <td>{{ obj_stats['aligned'] }}</td>
+                        <td>{{ obj_stats['seq_id'] }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="row">
