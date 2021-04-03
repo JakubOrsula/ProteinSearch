@@ -300,21 +300,22 @@ function init_results() {
                 let pivots_distances = '';
                 let search_distances = '';
                 let pivot_time = '';
-                let expected = 'expected:';
                 if (data.hasOwnProperty(progress_key) && data[progress_key]['running']) {
                     const progress = data[progress_key];
 
                     if (progress.hasOwnProperty('pivotTime')) {
-                        search_distances = `expected: ${progress['searchDistCountExpected']} ` +
-                            `(computed: ${progress['searchDistCountComputed']}, ` +
-                            `cached: ${progress['searchDistCountCached']})`;
+                        const done = progress['searchDistCountComputed'] + progress['searchDistCountCached'];
+                        const percentage = Math.floor(100 * done / progress['searchDistCountExpected']);
+                        search_distances = `${percentage}% (done ${done} out of ${progress['searchDistCountExpected']})`;
                         pivot_time = format_time(progress['pivotTime']);
-                        expected = '';
+                        pivots_distances = `${progress['pivotDistCountExpected']} ` +
+                            `(computed: ${progress['pivotDistCountComputed']}, ` +
+                            `cached: ${progress['pivotDistCountCached']})`;
+                    } else {
+                        const done = progress['pivotDistCountComputed'] + progress['pivotDistCountCached'];
+                        const percentage = Math.floor(100 * done / progress['pivotDistCountExpected']);
+                        pivots_distances = `${percentage}% (done ${done} out of ${progress['pivotDistCountExpected']})`;
                     }
-
-                    pivots_distances = `${expected} ${progress['pivotDistCountExpected']} ` +
-                        `(computed: ${progress['pivotDistCountComputed']}, ` +
-                        `cached: ${progress['pivotDistCountCached']})`;
                 }
 
                 row_data.push('<div id="running" class="spinner-border spinner-border-sm" role="status" />',
