@@ -101,10 +101,12 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     try:
         req = requests.get(url, params=parameters)
     except requests.exceptions.RequestException:
+        print(f'ERROR: MESSIF not responding when calling {url}')
         raise RuntimeError('MESSIF not responding')
 
     response = json.loads(req.content.decode('utf-8'))
     if response['status']['code'] not in (200, 201):
+        print(f'ERROR: MESSIF signalized error when calling {url}')
         print(response)
         raise RuntimeError('MESSIF signalized error')
 
@@ -128,6 +130,7 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
                 'searchTime': response['statistics']['OperationTime'] - response['query_record']['pivotDistTimes'],
             })
     except KeyError:
+        print(f'ERROR: MESSIF returned an incorrect response when calling {url}')
         print(response)
         raise RuntimeError('MESSIF returned an unexpected response')
 
@@ -199,6 +202,7 @@ def get_progress(job_id: str, phase: str) -> dict:
     try:
         req = requests.get(url, params={'job_id': job_id})
     except requests.exceptions.RequestException:
+        print(f'ERROR: MESSIF not responding when calling {url}')
         raise RuntimeError('MESSIF not responding')
 
     response = json.loads(req.content.decode('utf-8'))
@@ -220,9 +224,9 @@ def get_progress(job_id: str, phase: str) -> dict:
                         'searchDistCountCached'])
                 })
     except KeyError:
-        message = f'Incorrect response when calling {url}'
-        print(message)
-        raise RuntimeError(message)
+        print(f'ERROR: MESSIF returned an incorrect response when calling {url}')
+        print(response)
+        raise RuntimeError('MESSIF returned an unexpected response')
 
     return progress
 
@@ -234,6 +238,7 @@ def end_messif_job(job_id: str, phase: str) -> None:
         req = requests.get(url, params={'job_id': job_id})
         print('Ending search on ', req.url)
     except requests.exceptions.RequestException:
+        print(f'ERROR: MESSIF not responding when calling {url}')
         raise RuntimeError('MESSIF not responding')
 
 
