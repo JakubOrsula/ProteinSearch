@@ -100,14 +100,15 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/search'
     try:
         req = requests.get(url, params=parameters)
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
         print(f'ERROR: MESSIF not responding when calling {url}')
+        print(f'Original exception: {e}')
         raise RuntimeError('MESSIF not responding')
 
     response = json.loads(req.content.decode('utf-8'))
     if response['status']['code'] not in (200, 201):
-        print(f'ERROR: MESSIF signalized error when calling {url}')
-        print(response)
+        print(f'ERROR: MESSIF signalized error when calling {req.url}')
+        print(f'Response returned: {response}')
         raise RuntimeError('MESSIF signalized error')
 
     messif_ids = [int(record['_id']) for record in response['answer_records']]
@@ -129,9 +130,10 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
                 'searchDistCountCached': response['query_record']['searchDistCountCached'],
                 'searchTime': response['statistics']['OperationTime'] - response['query_record']['pivotDistTimes'],
             })
-    except KeyError:
-        print(f'ERROR: MESSIF returned an incorrect response when calling {url}')
-        print(response)
+    except KeyError as e:
+        print(f'ERROR: MESSIF returned an incorrect response when calling {req.url}')
+        print(f'Key not found: {e}')
+        print(f'Original response: {response}')
         raise RuntimeError('MESSIF returned an unexpected response')
 
     if not messif_ids:
@@ -201,8 +203,9 @@ def get_progress(job_id: str, phase: str) -> dict:
 
     try:
         req = requests.get(url, params={'job_id': job_id})
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
         print(f'ERROR: MESSIF not responding when calling {url}')
+        print(f'Original exception: {e}')
         raise RuntimeError('MESSIF not responding')
 
     response = json.loads(req.content.decode('utf-8'))
@@ -223,9 +226,10 @@ def get_progress(job_id: str, phase: str) -> dict:
                     'searchDistCountComputed': max(0, response['searchDistCountComputed'] - response[
                         'searchDistCountCached'])
                 })
-    except KeyError:
-        print(f'ERROR: MESSIF returned an incorrect response when calling {url}')
-        print(response)
+    except KeyError as e:
+        print(f'ERROR: MESSIF returned an incorrect response when calling {req.url}')
+        print(f'Key not found: {e}')
+        print(f'Original response: {response}')
         raise RuntimeError('MESSIF returned an unexpected response')
 
     return progress
@@ -237,8 +241,9 @@ def end_messif_job(job_id: str, phase: str) -> None:
     try:
         req = requests.get(url, params={'job_id': job_id})
         print('Ending search on ', req.url)
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
         print(f'ERROR: MESSIF not responding when calling {url}')
+        print(f'Original exception: {e}')
         raise RuntimeError('MESSIF not responding')
 
 
