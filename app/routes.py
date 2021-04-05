@@ -179,6 +179,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
     job_data = application.computation_results[job_id]
 
+    query_name = f'{job_data["name"]}:{job_data["chain"]}'
+
     executor = concurrent.futures.ProcessPoolExecutor(initializer=set_niceness, initargs=(19,))
 
     start_time = time.time()
@@ -265,7 +267,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         if query_raw_pdb.done():
             for chain_id in res_data['chain_ids']:
                 if chain_id not in result_stats:
-                    result_stats[chain_id] = executor.submit(get_stats, query, chain_id, min_qscore, job_id)
+                    result_stats[chain_id] = executor.submit(get_stats, query, query_name, chain_id, min_qscore, job_id)
 
         statistics = []
         completed = 0
