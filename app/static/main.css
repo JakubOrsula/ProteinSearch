@@ -1,5 +1,11 @@
 /* Index page */
 
+:root {
+    --query-color: rgb(33, 155, 119);
+    --other-color: rgb(192, 85, 25);
+}
+
+
 .list-group-item {
     padding: 0.5rem 0.5rem;
 }
