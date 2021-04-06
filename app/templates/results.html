@@ -102,7 +102,14 @@
             <div id="resize_wrapper">
                 <table class="table table-striped table-bordered" style="width:100%; font-size: 14px" id="table">
                     <caption class="h5" style="caption-side: top">Most similar chains
-                        to {{ query }} <span class="ml-3" style="font-size: 16px">{{ title }}</span></caption>
+                        to {{ query }}
+                        {% if title is none %}
+                            <span class="ml-3" style="font-size: 16px">(uploaded structure)</span>
+                        {% else %}
+                            <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ query.split(':')[0] }}" target="_blank"
+                               rel="noreferrer" class="ml-3" style="font-size: 16px"> {{ title }}</a>
+                        {% endif %}
+                    </caption>
                 </table>
             </div>
         </div>

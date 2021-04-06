@@ -134,7 +134,7 @@ def get_details(job_id: str, obj: str):
 
     other_pdb = obj.split(':')[0]
     names = get_names([name, other_pdb])
-    query_title = names.get(name, '(uploaded structure)')
+    query_title = names.get(name, None)
     obj_title = names[other_pdb]
 
     return render_template('details.html', query=f'{name}:{chain}', query_title=query_title, obj_title=obj_title,
@@ -392,7 +392,7 @@ def saved_query(job_id: str):
         return Response('Invalid link.')
 
     name, chain, statistics, added = data[0]
-    title = get_names([name]).get(name, '(uploaded structure)')
+    title = get_names([name]).get(name, None)
 
     return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added,
                            title=title)
