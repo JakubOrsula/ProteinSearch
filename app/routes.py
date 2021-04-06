@@ -105,7 +105,7 @@ def results(job_id: str, name: str, chain: str):
     if job_id not in application.computation_results:
         abort(404)
 
-    title = get_names([name]).get(name, '(uploaded structure)')
+    title = get_names([name]).get(name, None)
     return render_template('results.html', query=f'{name}:{chain}', job_id=job_id, title=title)
 
 
