@@ -410,8 +410,10 @@ function init_results() {
 }
 
 
-function load_molecule(plugin, job_id, object, index) {
-    const id = object === '_query' ? 'query' : object;
+function load_molecule(plugin, job_id, name, index) {
+
+    const id = index === 0 ? `${name} (query)`: name;
+    const object = index === 0 ? 'query' : name;
 
     plugin.loadMolecule({
         id: id,
@@ -450,12 +452,14 @@ function init_details() {
         },
     });
 
+    const query_name = $('#query').text();
+    const other_name = $('#other').text();
+
     const parts = window.location.pathname.split('/')
     const job_id = parts[2];
-    const object = parts[3];
 
-    load_molecule(plugin, job_id, '_query', 0);
-    load_molecule(plugin, job_id, object, 1);
+    load_molecule(plugin, job_id, query_name, 0);
+    load_molecule(plugin, job_id, other_name, 1);
 }
 
 

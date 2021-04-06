@@ -143,7 +143,7 @@ def get_details(job_id: str, obj: str):
 
 @application.route('/get_pdb/<string:job_id>/<string:obj>')
 def get_pdb(job_id: str, obj: str):
-    if obj == '_query':
+    if obj == 'query':
         file = 'query.pdb'
     else:
         file = f'{obj}.aligned.pdb'

@@ -28,7 +28,7 @@
         <div class="col d-flex flex-column">
             <div id="resize_wrapper">
                 <table class="table table-striped table-bordered" style="width:100%; font-size: 14px" id="table">
-                    <caption class="h5" style="caption-side: top">Query: {{ query }}
+                    <caption class="h5" style="caption-side: top">Query: <span id="query">{{ query }}</span>
                         <span class="ml-3" style="font-size: 16px">{{ query_title }}</span>
                     </caption>
                     <thead>
@@ -43,7 +43,7 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td>{{ obj_stats['object'] }}</td>
+                        <td id="other">{{ obj_stats['object'] }}</td>
                         <td><a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ obj_stats['object'].split(':')[0] }}"
                                target="_blank" rel="noreferrer">
                             <div style="max-width: 600px">{{ obj_title }}</div>
