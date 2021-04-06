@@ -74,14 +74,22 @@
     </div>
     <hr>
 
-    <div class="row pb-2">
+    <div class="row pb-2 {% if selected %} disabled {% endif %}">
         <div class="col">
-            <span class="h4">1. Select protein </span>
+            <span class="h4">
+                {% if selected %}
+                    <i class="bi bi-check mr-3"></i>
+                {% else %}
+                    <i class="bi bi-arrow-right mr-3"></i>
+                {% endif %}
+                1. Select protein
+            </span>
             <i class="bi bi-info-circle" title="Choose one of the four options."></i>
         </div>
     </div>
 
-    <form method="post" id="protein_form" enctype="multipart/form-data" action="{{ url_for('index') }}">
+    <form method="post" id="protein_form" enctype="multipart/form-data" action="{{ url_for('index') }}"
+            class="{% if selected %} disabled {% endif %}">
         <div class="row">
             <div class="col">
                 <fieldset id="fs-input" {% if selected %} disabled {% endif %}>
@@ -183,15 +191,20 @@
         </div>
     </form>
 
-    <div class="row pb-2 pt-3">
+    <div class="row pb-2 pt-3 {% if not selected %} disabled {% endif %}">
         <div class="col">
-            <span class="h4">2. Select chain </span>
+            <span class="h4">
+                 {% if selected %}
+                     <i class="bi bi-arrow-right mr-3"></i>
+                 {% endif %}
+                2. Select chain
+            </span>
             <i class="bi bi-info-circle" title="Only protein chains with at least 10 residues are shown."></i>
         </div>
     </div>
 
     <form method="post" enctype="multipart/form-data" action="{{ url_for('search', job_id=job_id) }}">
-        <div class="row">
+        <div class="row {% if not selected %} disabled {% endif %}">
             <div class="col">
                 <div class="card">
                     <div class="card-body">
@@ -218,15 +231,20 @@
             </div>
         </div>
 
-        <div class="row pb-2 pt-3">
+        <div class="row pb-2 pt-3 {% if not selected %} disabled {% endif %}">
             <div class="col">
-                <span class="h4">3. Search settings </span>
+                <span class="h4">
+                     {% if selected %}
+                         <i class="bi bi-arrow-right mr-3"></i>
+                     {% endif %}
+                    3. Search settings
+                </span>
                 <i class="bi bi-info-circle"
                    title="Modify search settings. Note that low value of minimum Q-score may negatively impact the performance of the search."></i>
             </div>
         </div>
 
-        <div class="row">
+        <div class="row {% if not selected %} disabled {% endif %}" >
             <div class="col">
                 <div class="card">
                     <div class="card-body">

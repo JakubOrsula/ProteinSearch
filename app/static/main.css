@@ -1,8 +1,12 @@
-/* Index page */
-
 :root {
     --query-color: rgb(33, 155, 119);
     --other-color: rgb(192, 85, 25);
+}
+
+/* Index page */
+
+.disabled {
+    opacity: 0.4;
 }
 
 
