@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import tempfile
 import shutil
 import requests
@@ -154,6 +155,19 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
+    if query == other:
+        c.execute('SELECT chainLength FROM proteinChain WHERE gesamtId = %s', (query,))
+        query_result = c.fetchall()
+        aligned = -1
+        if not query_result:
+            print(f'ERROR: Query {query} not found in DB')
+        else:
+            aligned = query_result[0][0]
+        T = np.eye(4).flatten().tolist()
+        c.close()
+        conn.close()
+        return 1.0, 0.0, 1.0, aligned, T
+
     select_query = (f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats '
                     f'FROM queriesNearestNeighboursStats WHERE queryGesamtId = %s AND nnGesamtId = %s')
     c.execute(select_query, (query, other))
@@ -187,9 +201,13 @@ def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id
     directory = os.path.join(COMPUTATIONS_DIR, f'query{job_id}')
     if qscore > min_qscore:
         try:
-            python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, T)
             query_pdb = os.path.join(directory, 'query.pdb')
-            other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
+            if query == other:
+                other_pdb = os.path.join(directory, 'query.pdb')
+            else:
+                python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, T)
+                other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
+
             output_png = os.path.join(directory, f'{other}.aligned.png')
             args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb,
                     output_png]
