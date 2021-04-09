@@ -1,81 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="ProteinSearch">
-    <title>Protein Chain Similarity Search</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
-          integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.0/font/bootstrap-icons.css">
+{% extends 'base/base.html' %}
+
+{% block styles %}
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}" type="text/css">
-</head>
+{% endblock %}
 
-<body>
-
-
-<div class="modal fade" id="protein_select_window" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Select protein</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" style="max-height: 500px; overflow-y:auto;">
-                <div class="list-group" id="pdbs">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <div id="status" class="mr-auto"></div>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div class="container p-3">
-    <div class="row">
-        <div class="col">
-            <a class="h1 text-dark card-link font-weight-bold" style="display: inline" href="{{ url_for('index') }}">
-                Protein Chain Similarity Search
-            </a>
-        </div>
-    </div>
-
-
-    {% set selected = selected | default(False, True) %}
-
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-danger mt-1 alert-dismissible fade show" role="alert">{{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+{% block body %}
+    <div class="modal fade" id="protein_select_window" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select protein</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <div class="row pt-2">
-        <div class="col">
-            <p class="lead">
-                Search for the most similar protein chains to a given query chain. <br>
-            </p>
-            Indexed {{ chain_count }} chains from {{ protein_count }} proteins downloaded from <a
-                href="http://pdbe.org/" rel="noreferrer" target="_blank">PDBe</a>.
-            Last update: {{ updated }}.
+                <div class="modal-body" style="max-height: 500px; overflow-y:auto;">
+                    <div class="list-group" id="pdbs">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div id="status" class="mr-auto"></div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
     </div>
-    <hr>
 
-    <div class="row pb-2 {% if selected %} disabled {% endif %}">
-        <div class="col">
+    <div class="container p-3">
+        <div class="row">
+            <div class="col">
+                <a class="h1 text-dark card-link font-weight-bold" style="display: inline"
+                   href="{{ url_for('index') }}">
+                    Protein Chain Similarity Search
+                </a>
+            </div>
+        </div>
+
+        {% set selected = selected | default(False, True) %}
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-danger mt-1 alert-dismissible fade show" role="alert">{{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row pt-2">
+            <div class="col">
+                <p class="lead">
+                    Search for the most similar protein chains to a given query chain. <br>
+                </p>
+                Indexed {{ chain_count }} chains from {{ protein_count }} proteins downloaded from <a
+                    href="http://pdbe.org/" rel="noreferrer" target="_blank">PDBe</a>.
+                Last update: {{ updated }}.
+            </div>
+        </div>
+        <hr>
+
+        <div class="row pb-2 {% if selected %} disabled {% endif %}">
+            <div class="col">
             <span class="h4">
                 {% if selected %}
                     <i class="bi bi-check mr-3"></i>
@@ -84,219 +73,215 @@
                 {% endif %}
                 1. Select protein
             </span>
-            <i class="bi bi-info-circle" title="Choose one of the four options."></i>
+                <i class="bi bi-info-circle" title="Choose one of the four options."></i>
+            </div>
         </div>
-    </div>
 
-    <form method="post" id="protein_form" enctype="multipart/form-data" action="{{ url_for('index') }}"
-            class="{% if selected %} disabled {% endif %}">
-        <div class="row">
-            <div class="col">
-                <fieldset id="fs-input" {% if selected %} disabled {% endif %}>
-                    <div class="card-group">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">PDB ID</h5>
-                                <p class="card-text">Select indexed chain by PDB ID.</p>
+        <form method="post" id="protein_form" enctype="multipart/form-data" action="{{ url_for('index') }}"
+              class="{% if selected %} disabled {% endif %}">
+            <div class="row">
+                <div class="col">
+                    <fieldset id="fs-input" {% if selected %} disabled {% endif %}>
+                        <div class="card-group">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">PDB ID</h5>
+                                    <p class="card-text">Select indexed chain by PDB ID.</p>
 
-                                <div class="form-group">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-12 pb-2 col-xl-2 pb-xl-0">
+                                                <label class="col-form-label" for="pdbid"> PDB ID: </label>
+                                            </div>
+                                            <div class="col-12 pb-2 col-xl-6 pb-xl-0">
+                                                <input class="form-control" type="text" size="20" id="pdbid"
+                                                       name="pdbid" placeholder="4-letter code (e.g., 12AS) ">
+                                            </div>
+                                            <div class="col-12 pb-2 col-xl-4 pb-xl-0 form-inline">
+                                                <button class="form-control btn btn-primary" type="submit"
+                                                        id="select_pdb_id" name="select_pdb_id" disabled>Select
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">File upload</h5>
+                                    <p class="card-text">Upload single PDB or mmCIF file.</p>
+                                    <div class="form-inline">
+                                        <div class="row form-group">
+                                            <div class="col-12 pb-2 pb-xl-0 col-xl-8">
+                                                <input class="form-control-file" type="file" name="file" id="file"
+                                                       accept=".pdb, .cif">
+                                            </div>
+                                            <div class="col-12 pb-2 pb-xl-0 col-xl-4 form-inline">
+                                                <button class="btn btn-primary form-control" type="submit" id="upload"
+                                                        name="upload" disabled>Upload
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <fieldset id="fs-search" {% if selected %} disabled {% endif %}>
+                        <div class="card-group">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Search</h5>
+                                    <p class="card-text">Search for indexed proteins by title.</p>
                                     <div class="row">
-                                        <div class="col-12 pb-2 col-xl-2 pb-xl-0">
-                                            <label class="col-form-label" for="pdbid"> PDB ID: </label>
+                                        <div class="col-12 pb-2 pb-xl-0 col-xl-2 form-inline">
+                                            <label class="col-form-label" for="search_phrase">Phrase: </label>
                                         </div>
-                                        <div class="col-12 pb-2 col-xl-6 pb-xl-0">
-                                            <input class="form-control" type="text" size="20" id="pdbid"
-                                                   name="pdbid" placeholder="4-letter code (e.g., 12AS) ">
+                                        <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-7 form-inline">
+                                            <input class="form-control" type="text" id="search_phrase"
+                                                   name="search_phrase" size=20
+                                                   placeholder="Enter at least 3 characters">
+                                            <div class="invalid-tooltip">
+                                                Insert only alphanumeric characters or spaces.
+                                            </div>
                                         </div>
-                                        <div class="col-12 pb-2 col-xl-4 pb-xl-0 form-inline">
-                                            <button class="form-control btn btn-primary" type="submit"
-                                                    id="select_pdb_id" name="select_pdb_id" disabled>Select
+                                        <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-3 form-inline">
+                                            <button type="button" id="search_pdb" class="btn btn-primary form-control"
+                                                    disabled style="min-width: 80px"> Search
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Random</h5>
+                                    <p class="card-text">Let application offer a few proposals.</p>
+                                    <div class="row">
+                                        <div class="col-12 form-inline">
+                                            <button type="button" class="btn btn-primary form-control"
+                                                    id="select_random"> Offer random
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">File upload</h5>
-                                <p class="card-text">Upload single PDB or mmCIF file.</p>
-                                <div class="form-inline">
-                                    <div class="row form-group">
-                                        <div class="col-12 pb-2 pb-xl-0 col-xl-8">
-                                            <input class="form-control-file" type="file" name="file" id="file"
-                                                   accept=".pdb, .cif">
-                                        </div>
-                                        <div class="col-12 pb-2 pb-xl-0 col-xl-4 form-inline">
-                                            <button class="btn btn-primary form-control" type="submit" id="upload"
-                                                    name="upload" disabled>Upload
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </fieldset>
+                    </fieldset>
+                </div>
             </div>
-        </div>
+        </form>
 
-        <div class="row">
+        <div class="row pb-2 pt-3 {% if not selected %} disabled {% endif %}">
             <div class="col">
-                <fieldset id="fs-search" {% if selected %} disabled {% endif %}>
-                    <div class="card-group">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Search</h5>
-                                <p class="card-text">Search for indexed proteins by title.</p>
-                                <div class="row">
-                                    <div class="col-12 pb-2 pb-xl-0 col-xl-2 form-inline">
-                                        <label class="col-form-label" for="search_phrase">Phrase: </label>
-                                    </div>
-                                    <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-7 form-inline">
-                                        <input class="form-control" type="text" id="search_phrase"
-                                               name="search_phrase" size=20
-                                               placeholder="Enter at least 3 characters">
-                                        <div class="invalid-tooltip">
-                                            Insert only alphanumeric characters or spaces.
-                                        </div>
-                                    </div>
-                                    <div class="col-12 pb-2 pb-xl-0 col-lg-4 col-xl-3 form-inline">
-                                        <button type="button" id="search_pdb" class="btn btn-primary form-control"
-                                                disabled style="min-width: 80px"> Search
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Random</h5>
-                                <p class="card-text">Let application offer a few proposals.</p>
-                                <div class="row">
-                                    <div class="col-12 form-inline">
-                                        <button type="button" class="btn btn-primary form-control"
-                                                id="select_random"> Offer random
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
-            </div>
-        </div>
-    </form>
-
-    <div class="row pb-2 pt-3 {% if not selected %} disabled {% endif %}">
-        <div class="col">
             <span class="h4">
                  {% if selected %}
                      <i class="bi bi-arrow-right mr-3"></i>
                  {% endif %}
                 2. Select chain
             </span>
-            <i class="bi bi-info-circle" title="Only protein chains with at least 10 residues are shown."></i>
-        </div>
-    </div>
-
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('search', job_id=job_id) }}">
-        <div class="row {% if not selected %} disabled {% endif %}">
-            <div class="col">
-                <div class="card">
-                    <div class="card-body">
-                        <fieldset id="fs-chains" {% if not selected %} disabled {% endif %}>
-                            <h5 class="card-title">Detected chains {% if selected %} of
-                                <b>{{ input_name }} </b> having at least 10 residues {% endif %} </h5>
-                            <p class="card-text"> {% if name is defined %} {{ name }} {% endif %} </p>
-                            <div class="row">
-                                <div class="col-2 col-lg-1">
-                                    <label class="col-form-label" for="chain">Chains: </label>
-                                </div>
-                                <div class="col-12 col-sm-9 form-inline">
-                                    <select class="form-control selectpicker" name="chain" id="chain"
-                                            data-show-subtext="true">
-                                        {% for id, size in chains | default([], True) %}
-                                            <option value="{{ id }}" data-subtext="(size: {{ size }})">{{ id }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                </div>
+                <i class="bi bi-info-circle" title="Only protein chains with at least 10 residues are shown."></i>
             </div>
         </div>
 
-        <div class="row pb-2 pt-3 {% if not selected %} disabled {% endif %}">
-            <div class="col">
+        <form method="post" enctype="multipart/form-data" action="{{ url_for('search', job_id=job_id) }}">
+            <div class="row {% if not selected %} disabled {% endif %}">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body">
+                            <fieldset id="fs-chains" {% if not selected %} disabled {% endif %}>
+                                <h5 class="card-title">Detected chains {% if selected %} of
+                                    <b>{{ input_name }} </b> having at least 10 residues {% endif %} </h5>
+                                <p class="card-text"> {% if name is defined %} {{ name }} {% endif %} </p>
+                                <div class="row">
+                                    <div class="col-2 col-lg-1">
+                                        <label class="col-form-label" for="chain">Chains: </label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-inline">
+                                        <select class="form-control selectpicker" name="chain" id="chain"
+                                                data-show-subtext="true">
+                                            {% for id, size in chains | default([], True) %}
+                                                <option value="{{ id }}"
+                                                        data-subtext="(size: {{ size }})">{{ id }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row pb-2 pt-3 {% if not selected %} disabled {% endif %}">
+                <div class="col">
                 <span class="h4">
                      {% if selected %}
                          <i class="bi bi-arrow-right mr-3"></i>
                      {% endif %}
                     3. Search settings
                 </span>
-                <i class="bi bi-info-circle"
-                   title="Modify search settings. Note that low value of minimum Q-score may negatively impact the performance of the search."></i>
+                    <i class="bi bi-info-circle"
+                       title="Modify search settings. Note that low value of minimum Q-score may negatively impact the performance of the search."></i>
+                </div>
             </div>
-        </div>
 
-        <div class="row {% if not selected %} disabled {% endif %}" >
-            <div class="col">
-                <div class="card">
-                    <div class="card-body">
-                        <fieldset id="fs-settings" {% if not selected %} disabled {% endif %}>
-                            <div class="row">
-                                <div class="col col-12 col-md-8 col-lg-4 pb-md-2 pb-lg-0">
-                                    <label class="col-form-label" for="qscore_range">Minimum Q-score: </label>
+            <div class="row {% if not selected %} disabled {% endif %}">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body">
+                            <fieldset id="fs-settings" {% if not selected %} disabled {% endif %}>
+                                <div class="row">
+                                    <div class="col col-12 col-md-8 col-lg-4 pb-md-2 pb-lg-0">
+                                        <label class="col-form-label" for="qscore_range">Minimum Q-score: </label>
+                                    </div>
+                                    <div class="col col-12 col-md-4 col-lg-2 pb-md-2 pb-lg-0">
+                                        <input class="form-control" type="number" name="qscore_range" value="0.5"
+                                               min="0.3" max="1.0" step="0.1" id="qscore_range">
+                                    </div>
+                                    <div class="col col-12 col-md-8 col-lg-4 pb-md-2 pb-lg-0">
+                                        <label class="col-form-label" for="num_results">Maximum number of
+                                            results: </label>
+                                    </div>
+                                    <div class="col col-12 col-md-4 col-lg-2 pb-md-2 pb-lg-0">
+                                        <input class="form-control" type="number" name="num_results" value="30"
+                                               min="10" max="200" step="10" id="num_results">
+                                    </div>
                                 </div>
-                                <div class="col col-12 col-md-4 col-lg-2 pb-md-2 pb-lg-0">
-                                    <input class="form-control" type="number" name="qscore_range" value="0.5"
-                                           min="0.3" max="1.0" step="0.1" id="qscore_range">
-                                </div>
-                                <div class="col col-12 col-md-8 col-lg-4 pb-md-2 pb-lg-0">
-                                    <label class="col-form-label" for="num_results">Maximum number of results: </label>
-                                </div>
-                                <div class="col col-12 col-md-4 col-lg-2 pb-md-2 pb-lg-0">
-                                    <input class="form-control" type="number" name="num_results" value="30"
-                                           min="10" max="200" step="10" id="num_results">
-                                </div>
-                            </div>
-                        </fieldset>
+                            </fieldset>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="row pt-4">
-            <div class="col-12 col-sm-4 col-md-3 col-xl-2 pb-2 pb-sm-0">
-                <button class="btn btn-success form-control" type="submit" id="run" {% if not selected %}
-                        disabled {% endif %}><i class="bi bi-search mr-1"></i> Run search
-                </button>
+            <div class="row pt-4">
+                <div class="col-12 col-sm-4 col-md-3 col-xl-2 pb-2 pb-sm-0">
+                    <button class="btn btn-success form-control" type="submit" id="run" {% if not selected %}
+                            disabled {% endif %}><i class="bi bi-search mr-1"></i> Run search
+                    </button>
 
+                </div>
+                <div class="col-12 col-sm-3 col-lg-2 ml-auto pb-2 pb-sm-0 float-right">
+                    <a class="btn btn-dark form-control" href="{{ url_for('index') }}">Reset form</a>
+                </div>
             </div>
-            <div class="col-12 col-sm-3 col-lg-2 ml-auto pb-2 pb-sm-0 float-right">
-                <a class="btn btn-dark form-control" href="{{ url_for('index') }}">Reset form</a>
-            </div>
-        </div>
 
-        <input type="hidden" name="input_name" id="input_name" value="{{ input_name }}">
-        <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
+            <input type="hidden" name="input_name" id="input_name" value="{{ input_name }}">
+            <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
 
-    </form>
-</div>
+        </form>
+    </div>
 
+{% endblock body %}
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"
-        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns"
-        crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
-<script src="{{ url_for('static', filename='main.js') }}"></script>
-
-</body>
-</html>
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+{% endblock scripts %}
