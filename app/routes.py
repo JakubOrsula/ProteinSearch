@@ -415,7 +415,6 @@ def find_similar(job_id: str, obj: str):
         job_data = application.computation_results[job_id]
         k = job_data['num_results']
         radius = job_data['radius']
-        print(k, radius)
     else:
         conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
         c = conn.cursor()
