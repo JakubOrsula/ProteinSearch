@@ -138,7 +138,7 @@ def get_details(job_id: str, obj: str):
     obj_title = names[other_pdb]
 
     return render_template('details.html', query=f'{name}:{chain}', query_title=query_title, obj_title=obj_title,
-                           obj_stats=obj_stats)
+                           obj_stats=obj_stats, job_id=job_id, obj=obj)
 
 
 @application.route('/get_pdb/<string:job_id>/<string:obj>')
@@ -405,6 +405,40 @@ def end_job(job_id: str):
 
     application.computation_results[job_id]['_abort'] = True
     return '', 204
+
+
+@application.route('/find_similar/<string:job_id>/<string:obj>')
+def find_similar(job_id: str, obj: str):
+    pdbid, chain = obj.split(':')
+
+    if job_id in application.computation_results:
+        job_data = application.computation_results[job_id]
+        k = job_data['num_results']
+        radius = job_data['radius']
+        print(k, radius)
+    else:
+        conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+        c = conn.cursor()
+        sql_select = 'SELECT k, radius FROM savedQueries WHERE job_id = %s'
+        c.execute(sql_select, (job_id,))
+        data = c.fetchall()
+        c.close()
+        conn.close()
+        if not data:
+            abort(404)
+        k, radius = data[0]
+
+    new_job_id, chains = prepare_indexed_chain(pdbid)
+
+    application.computation_results[new_job_id] = application.mp_manager.dict({
+        'query': obj,
+        'radius': radius,
+        'name': pdbid,
+        'chain': chain,
+        'num_results': k,
+    })
+
+    return redirect(url_for('results', job_id=new_job_id, chain=chain, name=pdbid))
 
 
 @application.errorhandler(404)

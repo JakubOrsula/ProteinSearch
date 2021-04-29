@@ -385,7 +385,7 @@ function init_results() {
                                 </a>`;
             }
 
-            const data = [idx + 1, res['object'],
+            const data = [idx + 1, `<div>${res['object']}</div><div class="mt-1" style="max-width: 75px"><a href="/find_similar/${job_id}/${res['object']}">Find similar to this</a></div>`,
                 `<a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbid}" target="_blank" rel="noreferrer">
                             <div class="name_${pdbid}" style="max-width: 900px">${name}</div>
                         </a>`, qscore, rmsd, aligned, seq_id, link];
