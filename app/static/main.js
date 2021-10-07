@@ -265,6 +265,7 @@ function init_results() {
             $save_query.toggle(true);
             $('#total_time').html(`Total time: ${format_time(data['total_time'])}`);
             $('.dataTables_empty').html('No similar protein chains found in the database.')
+            $('#results_number').html(`(${data['chain_ids'].length} results)`);
         } else if (data['status'] === 'ABORTED') {
             let $running = $('#running');
             if ($running.length) {
