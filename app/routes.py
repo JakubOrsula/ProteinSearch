@@ -1,5 +1,6 @@
 from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for, Response, abort
 import os
+import csv
 import concurrent.futures
 import python_distance
 from typing import Generator, Union
@@ -374,6 +375,19 @@ def save_query(job_id: str):
     conn.close()
 
     return Response(f'{request.url_root}saved_query/{job_id}')
+
+
+@application.route('/get_csv_results/<string:job_id>')
+def get_csv_results(job_id: str):
+    data = application.computation_results[job_id]['res_data']['statistics']
+    with open(os.path.join(COMPUTATIONS_DIR, f'query{job_id}', 'results.csv'), 'w') as f:
+        csv_writer = csv.DictWriter(f, ['object', 'qscore', 'rmsd', 'seq_id', 'aligned'])
+        csv_writer.writeheader()
+        for obj in data:
+            csv_writer.writerow(obj)
+
+    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), 'results.csv', cache_timeout=0,
+                               as_attachment=True)
 
 
 @application.route('/saved_query/<string:job_id>')

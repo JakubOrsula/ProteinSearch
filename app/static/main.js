@@ -211,6 +211,7 @@ function init_results() {
     });
 
     let $save_query = $('#save_query');
+    let $download_results = $('#download_results');
     let $stop_search = $('#stop_search');
     let $back = $('#back');
     let $saved_query_url = $('#saved_query_url');
@@ -220,6 +221,7 @@ function init_results() {
 
     $back.toggle(false);
     $save_query.toggle(false);
+    $download_results.toggle(false);
 
     $save_query.on('click', function () {
         $.ajax({
@@ -263,6 +265,7 @@ function init_results() {
 
         if (data['status'] === 'FINISHED') {
             $save_query.toggle(true);
+            $download_results.toggle(true);
             $('#total_time').html(`Total time: ${format_time(data['total_time'])}`);
             $('.dataTables_empty').html('No similar protein chains found in the database.')
             $('#results_number').html(`(${data['chain_ids'].length} results)`);
