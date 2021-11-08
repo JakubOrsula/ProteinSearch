@@ -96,6 +96,8 @@ def search(job_id: str):
         'name': name,
         'chain': chain,
         'num_results': num_results,
+        'disable_search_stats': 'disable_search_stats' in request.form,
+        'disable_visualizations': 'disable_visualizations' in request.form
     })
 
     return redirect(url_for('results', job_id=job_id, chain=chain, name=name))
@@ -106,8 +108,11 @@ def results(job_id: str, name: str, chain: str):
     if job_id not in application.computation_results:
         abort(404)
 
+    disable_search_stats = application.computation_results[job_id]['disable_search_stats']
+    disable_visualizations = application.computation_results[job_id]['disable_visualizations']
     title = get_names([name]).get(name, None)
-    return render_template('results.html', query=f'{name}:{chain}', job_id=job_id, title=title)
+    return render_template('results.html', query=f'{name}:{chain}', job_id=job_id, title=title,
+                           disable_search_stats=disable_search_stats, disable_visualizations=disable_visualizations)
 
 
 @application.route('/details/<string:job_id>/<string:obj>')
@@ -264,11 +269,13 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
             res_data['error_message'] = str(e)
 
         query = job_data['query']
+        disable_visualizations = job_data['disable_visualizations']
         min_qscore = 1 - job_data['radius']
         if query_raw_pdb.done():
             for chain_id in res_data['chain_ids']:
                 if chain_id not in result_stats:
-                    result_stats[chain_id] = executor.submit(get_stats, query, query_name, chain_id, min_qscore, job_id)
+                    result_stats[chain_id] = executor.submit(get_stats, query, query_name, chain_id, min_qscore, job_id,
+                                                             disable_visualizations)
 
         statistics = []
         completed = 0
@@ -366,10 +373,12 @@ def save_query(job_id: str):
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
     sql_insert = ('INSERT IGNORE INTO savedQueries '
-                  '(job_id, name, chain, radius, k, statistics) VALUES (%s, %s, %s, %s, %s, %s)')
+                  '(job_id, name, chain, radius, k, statistics, disable_search_stats, disable_visualizations)'
+                  'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
 
     c.execute(sql_insert, (job_id, job_data['name'], job_data['chain'], job_data['radius'], job_data['num_results'],
-                           json.dumps(statistics)))
+                           json.dumps(statistics), job_data['disable_search_stats'],
+                           job_data['disable_visualizations']))
     conn.commit()
     c.close()
     conn.close()
@@ -411,7 +420,8 @@ def saved_query(job_id: str):
     conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
     c = conn.cursor()
 
-    sql_select = 'SELECT name, chain, statistics, added FROM savedQueries WHERE job_id = %s'
+    sql_select = ('SELECT name, chain, statistics, added, disable_search_stats, disable_visualizations '
+                  'FROM savedQueries WHERE job_id = %s')
     c.execute(sql_select, (job_id,))
     data = c.fetchall()
     c.close()
@@ -420,11 +430,12 @@ def saved_query(job_id: str):
     if not dir_exists or not data:
         return Response('Invalid link.')
 
-    name, chain, statistics, added = data[0]
+    name, chain, statistics, added, disable_search_stats, disable_visualizations = data[0]
     title = get_names([name]).get(name, None)
 
     return render_template('results.html', saved=True, statistics=statistics, query=f'{name}:{chain}', added=added,
-                           title=title)
+                           title=title, disable_search_stats=disable_search_stats,
+                           disable_visualizations=disable_visualizations)
 
 
 @application.route('/end_job/<string:job_id>', methods=['GET', 'POST'])

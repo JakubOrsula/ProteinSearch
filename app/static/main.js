@@ -173,6 +173,12 @@ function init_results() {
     }
     statusTable.draw();
 
+    let $disable_visualizations = $('#disable_visualizations');
+    let alignment_classes = 'small_padding zoom';
+    if ($disable_visualizations.val() === 'true') {
+        alignment_classes = 'text-end';
+    }
+
     let resultsTable = $('#table').DataTable({
         columns: [
             {title: 'No.', width: '80px'},
@@ -187,7 +193,7 @@ function init_results() {
                 'searchable': false,
                 'orderable': false,
                 width: '100px',
-                className: 'small_padding zoom'
+                className: alignment_classes
             },
         ],
         searching: false,
@@ -335,6 +341,9 @@ function init_results() {
                 row_data.push('<i class="bi bi-exclamation-diamond"></i>',
                     `<span class="text-danger">Error: ${data['error_message']}</span>`,
                     '', `<span class="text-danger">Search aborted</span>`, '', '');
+                $back.removeClass('btn-primary');
+                $back.addClass('btn-danger');
+                $back.text('Error occured. Go back.')
             }
 
             let old_row_data = statusTable.row(`#stats_row_${phase}`).data();
@@ -377,17 +386,26 @@ function init_results() {
             let aligned = '?';
             let seq_id = '?';
             let link = `<img src="/static/empty.png" alt="Alignment thumbnail of ${res['object']}">`;
+            if ($disable_visualizations.val() === 'true') {
+                link = '?';
+            }
 
             if (res['qscore'] !== -1) {
                 qscore = res['qscore'].toFixed(3);
                 rmsd = res['rmsd'].toFixed(3);
                 aligned = res['aligned'];
                 seq_id = res['seq_id'].toFixed(3);
-                link = `<a href="/details/${job_id}/${res['object']}" target="_blank">
+
+                if ($disable_visualizations.val() === 'true') {
+                    link = `<a href="/details/${job_id}/${res['object']}" target="_blank">
+                                Show 3D visualization</a>`;
+                } else {
+                    link = `<a href="/details/${job_id}/${res['object']}" target="_blank">
                                 <div class="zoom-text">Show 3D visualization</div>
                                 <img src="/get_image/${job_id}/${res['object']}"
                                      alt="Alignment thumbnail of ${res['object']}">
                                 </a>`;
+                }
             }
 
             const data = [idx + 1, `<div>${res['object']}</div><div class="mt-1" style="max-width: 75px"><a href="/find_similar/${job_id}/${res['object']}">Find similar to this</a></div>`,
@@ -417,7 +435,7 @@ function init_results() {
 
 function load_molecule(plugin, job_id, name, index) {
 
-    const id = index === 0 ? `${name} (query)`: name;
+    const id = index === 0 ? `${name} (query)` : name;
     const object = index === 0 ? 'query' : name;
 
     plugin.loadMolecule({

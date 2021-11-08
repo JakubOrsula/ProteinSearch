@@ -8,6 +8,9 @@
 
 {% block body %}
     {% set saved = saved | default(False, True) %}
+    {% set disable_search_stats = disable_search_stats | default(True, False) %}
+    <input type="hidden" id="disable_visualizations"
+           value="{% if disable_visualizations %}true{% else %}false{% endif %}">
 
     <div class="modal fade" id="save_query_window" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -42,7 +45,7 @@
                     {{ added }} {% endif %}</h3>
             </div>
         </div>
-        <div class="row">
+        <div class="row {% if disable_search_stats %} d-none {% endif %}">
             <div class="col" style="max-width: 1300px">
                 <table class="table table-striped table-bordered table-sm" style="width:100%; font-size: 14px"
                        id="messif_stats">
@@ -107,7 +110,8 @@
                                 <span class="ms-3" style="font-size: 16px">(uploaded structure)</span>
                             {% else %}
                                 <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ query.split(':')[0] }}" target="_blank"
-                                   rel="noreferrer" class="ms-3 text-decoration-none" style="font-size: 16px"> {{ title }}</a>
+                                   rel="noreferrer" class="ms-3 text-decoration-none"
+                                   style="font-size: 16px"> {{ title }}</a>
                             {% endif %}
                         </caption>
                     </table>

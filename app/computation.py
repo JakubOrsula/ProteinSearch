@@ -195,8 +195,8 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
     return results
 
 
-def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id: str) -> \
-        Tuple[float, float, float, int]:
+def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id: str, disable_visualizations: bool) \
+        -> Tuple[float, float, float, int]:
     qscore, rmsd, seq_identity, aligned, T = get_similarity_results(query, other, min_qscore)
     directory = os.path.join(COMPUTATIONS_DIR, f'query{job_id}')
     if qscore > min_qscore:
@@ -207,16 +207,16 @@ def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id
             else:
                 python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, T)
                 other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
+            if not disable_visualizations:
+                output_png = os.path.join(directory, f'{other}.aligned.png')
+                args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb,
+                        other_pdb, output_png]
+                subprocess.run(args)
 
-            output_png = os.path.join(directory, f'{other}.aligned.png')
-            args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb, other_pdb,
-                    output_png]
-            subprocess.run(args)
-
-            args = ['convert', '-fill', 'rgb(33, 155, 119)', '-font', 'Carlito-Bold', '-pointsize', '24',
-                    '-draw', f'text 20, 40 "{query_name} (query)"', '-fill', 'rgb(192, 85, 25)', '-draw',
-                    f'text 20, 70 "{other}"', output_png, output_png]
-            subprocess.run(args)
+                args = ['convert', '-fill', 'rgb(33, 155, 119)', '-font', 'Carlito-Bold', '-pointsize', '24',
+                        '-draw', f'text 20, 40 "{query_name} (query)"', '-fill', 'rgb(192, 85, 25)', '-draw',
+                        f'text 20, 70 "{other}"', output_png, output_png]
+                subprocess.run(args)
         except:
             print('Cannot generate alignment and image')
     return qscore, rmsd, seq_identity, aligned
