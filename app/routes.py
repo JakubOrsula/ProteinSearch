@@ -1,7 +1,7 @@
 from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for, Response, abort
 import os
-import csv
 import concurrent.futures
+from datetime import datetime
 import python_distance
 from typing import Generator, Union
 import copy
@@ -377,16 +377,31 @@ def save_query(job_id: str):
     return Response(f'{request.url_root}saved_query/{job_id}')
 
 
-@application.route('/get_csv_results/<string:job_id>')
-def get_csv_results(job_id: str):
-    data = application.computation_results[job_id]['res_data']['statistics']
-    with open(os.path.join(COMPUTATIONS_DIR, f'query{job_id}', 'results.csv'), 'w') as f:
-        csv_writer = csv.DictWriter(f, ['object', 'qscore', 'rmsd', 'seq_id', 'aligned'])
-        csv_writer.writeheader()
-        for obj in data:
-            csv_writer.writerow(obj)
+@application.route('/get_txt_results/<string:job_id>')
+def get_txt_results(job_id: str):
+    all_data = application.computation_results[job_id]
+    res_data = all_data['res_data']['statistics']
 
-    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), 'results.csv', cache_timeout=0,
+    filename = f'results_{all_data["query"].replace(":", "_")}.txt'
+    with open(os.path.join(COMPUTATIONS_DIR, f'query{job_id}', filename), 'w') as f:
+        f.write('Protein chain search results\n')
+        f.write(f'{"=" * 40}\n')
+        f.write(f'Query: {all_data["query"]}\n')
+        f.write(f'Q-score threshold: {1 - all_data["radius"]}\n')
+        f.write(f'Maximum number of results: {all_data["num_results"]}\n')
+        f.write(f'Number of results: {len(res_data)}\n')
+        f.write(f'DB version: {application.db_stats["updated"]}\n')
+        f.write(f'Results downloaded: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n')
+        f.write(f'{"=" * 40}\n')
+        f.write(','.join(['object', 'qscore', 'rmsd', 'seq_id', 'aligned']) + '\n')
+        for obj in res_data:
+            f.write(f'{obj["object"]},'
+                    f'{obj["qscore"]:5.3f},'
+                    f'{obj["rmsd"]:5.3f},'
+                    f'{obj["seq_id"]:5.3f},'
+                    f'{obj["aligned"]}\n')
+
+    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), filename, cache_timeout=0,
                                as_attachment=True)
 
 
