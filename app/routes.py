@@ -386,7 +386,7 @@ def get_txt_results(job_id: str):
     with open(os.path.join(COMPUTATIONS_DIR, f'query{job_id}', filename), 'w') as f:
         f.write('Protein chain search results\n')
         f.write(f'{"=" * 40}\n')
-        f.write(f'Query: {all_data["query"]}\n')
+        f.write(f'Query: {all_data["name"]}:{all_data["chain"]}\n')
         f.write(f'Q-score threshold: {1 - all_data["radius"]}\n')
         f.write(f'Maximum number of results: {all_data["num_results"]}\n')
         f.write(f'Number of results: {len(res_data)}\n')

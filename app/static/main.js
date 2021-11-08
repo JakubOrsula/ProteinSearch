@@ -213,6 +213,7 @@ function init_results() {
     let $save_query = $('#save_query');
     let $download_results = $('#download_results');
     let $stop_search = $('#stop_search');
+    let $stop_search_div = $('#stop_search_div');
     let $back = $('#back');
     let $saved_query_url = $('#saved_query_url');
     let $clipboard_copy = $('#clipboard_copy');
@@ -258,7 +259,7 @@ function init_results() {
     function update_content(data) {
         if (['FINISHED', 'ERROR', 'ABORTED'].includes(data['status'])) {
             eventSource.close();
-            $stop_search.toggle(false);
+            $stop_search_div.toggle(false);
             $back.toggle(true);
             $(window).off('beforeunload unload');
         }
