@@ -29,10 +29,10 @@ def get_ids(min_size: int, max_size: int, limit: int) -> List[str]:
     return data
 
 
-def run_search(pdb_id: str, num_results: int, radius: float, schema: str, sleep: bool):
+def run_search(pdb_id: str, num_results: int, radius: float, schema: str, sleep: bool, url: str, port: int):
     if sleep:
         time.sleep(random.random())
-    url = f'http://similar-pdb.cerit-sc.cz:{PORTS["full"]}/search'
+    url = f'{url}:{port}/search'
     job_id = ''.join(random.choice(string.ascii_lowercase) for _ in range(8))
     parameters = {'queryid': pdb_id, 'k': num_results, 'job_id': job_id, 'radius': radius}
     try:
@@ -47,14 +47,20 @@ def run_search(pdb_id: str, num_results: int, radius: float, schema: str, sleep:
     return pdb_id, 'OK'
 
 
-def stress(ids: List[str], num_results: int, radius: float, workers: int, sleep: bool):
+def stress(ids: List[str], num_results: int, radius: float, workers: int, sleep: bool, url: str, port: int,
+           sketches_only: bool):
     with open(os.path.join(os.path.dirname(__file__), 'response_schema.json')) as f:
         schema = json.load(f)
 
+    if sketches_only:
+        tmp = schema['properties']['query_record']['required']
+        new = [x for x in tmp if x not in {'searchDistCountTotal', 'searchDistCountCached'}]
+        schema['properties']['query_record']['required'] = new
+
     executor = ThreadPoolExecutor(workers)
 
-    jobs = [executor.submit(run_search, data, num_results=num_results, radius=radius, schema=schema, sleep=sleep)
-            for data in ids]
+    jobs = [executor.submit(run_search, data, num_results=num_results, radius=radius, schema=schema, sleep=sleep,
+                            url=url, port=port) for data in ids]
     results = []
     for job in tqdm.tqdm(as_completed(jobs), total=len(jobs)):
         results.append((job.result()))
@@ -76,6 +82,10 @@ def stress(ids: List[str], num_results: int, radius: float, workers: int, sleep:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--url', type=str, default='http://similar-pdb.cerit-sc.cz', help='URL of the service')
+    parser.add_argument('--port', type=int, default=20001, help='Port of the service')
+    parser.add_argument('--sketches-only', dest='sketches_only', action='store_true', default=False,
+                        help='Don\'t expect search stats in results')
     parser.add_argument('--count', type=int, default=10, help='Number of requests')
     parser.add_argument('--min-size', type=int, default=100, help='Minimal chain size')
     parser.add_argument('--max-size', type=int, default=1000, help='Maximal chain size')
@@ -89,4 +99,5 @@ if __name__ == '__main__':
 
     pdb_ids = get_ids(args.min_size, args.max_size, args.count)
 
-    stress(pdb_ids, num_results=args.results, radius=args.radius, workers=args.workers, sleep=args.sleep)
+    stress(pdb_ids, num_results=args.results, radius=args.radius, workers=args.workers, sleep=args.sleep,
+           url=args.url, port=args.port, sketches_only=args.sketches_only)
