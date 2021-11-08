@@ -3,7 +3,7 @@
 {% block title %} Protein Chain Similarity Search - Results {% endblock title %}
 
 {% block styles %}
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
 {% endblock styles %}
 
 {% block body %}
@@ -14,9 +14,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Share results</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <label for="saved_query_url">The results will be available for one week at this link:</label><br>
@@ -24,10 +22,11 @@
                     <button type="button" class="btn btn-primary" id="clipboard_copy"><i class="bi bi-clipboard"></i>
                         Copy link
                     </button>
-                    <span class="ml-2" id="copy_status"></span>
+                    <span class="ms-2" id="copy_status"></span>
                 </div>
                 <div class="modal-footer">
-                    <button id="save_query_close" type="button" class="btn btn-success" data-dismiss="modal">OK</button>
+                    <button id="save_query_close" type="button" class="btn btn-success" data-bs-dismiss="modal">OK
+                    </button>
                 </div>
             </div>
         </div>
@@ -37,7 +36,7 @@
     <div class="container-fluid d-flex flex-column" style="max-width: 1800px">
         <div class="row pt-3">
             <div class="col">
-                <a class="h1 text-dark card-link font-weight-bold mr-5" style="display: inline"
+                <a class="h1 text-dark card-link fw-bold me-5 text-decoration-none" style="display: inline"
                    href="{{ url_for('index') }}">Protein Chain Similarity Search</a>
                 <h3 class="text-secondary" style="display: inline">Results {% if saved %} from
                     {{ added }} {% endif %}</h3>
@@ -66,35 +65,36 @@
                 </table>
             </div>
         </div>
-        <div class="row mt-2" style="max-width: 1300px">
-            <div class="col-12 pb-2 pb-sm-0 form-inline">
-                {% if not saved %}
-                    <div class="form-group">
-                        <button class="btn btn-danger" id="stop_search">Stop search</button>
-                    </div>
-                    <div class="form-group mr-5">
-                        <button class="btn btn-primary" id="back">Back</button>
-                    </div>
-                    <div class="form-group mr-5">
-                        <button type="button" class="btn btn-success" data-toggle="modal"
-                                data-target="#save_query_window"
-                                id="save_query">Share results
-                        </button>
-                    </div>
-                    <div class="form-group">
-                        <a href="/get_txt_results/{{ job_id }}" class="btn btn-primary"
-                           id="download_results">Download results
-                        </a>
-                    </div>
-                {% else %}
+        <div class="row row-cols-lg-auto mt-2" style="max-width: 1300px">
+            {% if not saved %}
+                <div class="col-12">
+                    <button class="btn btn-danger" id="stop_search">Stop search</button>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" id="back">Back</button>
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                            data-bs-target="#save_query_window"
+                            id="save_query">Share results
+                    </button>
+                </div>
+                <div class="col-12">
+                    <a href="/get_txt_results/{{ job_id }}" class="btn btn-primary me-2"
+                       id="download_results">Download results
+                    </a>
+                </div>
+
+            {% else %}
+                <div class="col-12">
                     <a href="/" class="btn btn-primary">Try new search</a>
-                {% endif %}
-                <div class="ml-auto">
-                    <b id="search_time"></b>
                 </div>
-                <div class="ml-3 text-right" style="width: 200px">
-                    <b id="total_time"></b>
-                </div>
+            {% endif %}
+            <div class="col-12 ms-auto">
+                <b id="search_time"></b>
+            </div>
+            <div class="col-12" style="width: 200px">
+                <b id="total_time"></b>
             </div>
         </div>
         <div class="row flex-fill">
@@ -104,10 +104,10 @@
                         <caption class="h5" style="caption-side: top">Most similar chains
                             to {{ query }} <span id="results_number"></span>
                             {% if title is none %}
-                                <span class="ml-3" style="font-size: 16px">(uploaded structure)</span>
+                                <span class="ms-3" style="font-size: 16px">(uploaded structure)</span>
                             {% else %}
                                 <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/{{ query.split(':')[0] }}" target="_blank"
-                                   rel="noreferrer" class="ml-3" style="font-size: 16px"> {{ title }}</a>
+                                   rel="noreferrer" class="ms-3 text-decoration-none" style="font-size: 16px"> {{ title }}</a>
                             {% endif %}
                         </caption>
                     </table>
@@ -119,8 +119,8 @@
 {% endblock body %}
 
 {% block scripts %}
-    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/plug-ins/1.10.24/features/scrollResize/dataTables.scrollResize.min.js"></script>
     {% if saved %}
         <script>

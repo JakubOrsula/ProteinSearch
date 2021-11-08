@@ -65,7 +65,7 @@ function init_index() {
                                         name="selected" value="${pdb_id}"><b>${pdb_id}</b> ${name}</button>`);
                     }
                     $status.html('Showing 10 random proposals.');
-                    $('#protein_select_window').modal();
+                    $('#protein_select_window').modal('show');
                 }
             }
         )
@@ -92,7 +92,7 @@ function init_index() {
                         $status.html('No results found.');
                     }
                     $search_pdb.html('Search');
-                    $('#protein_select_window').modal();
+                    $('#protein_select_window').modal('show');
                 }
             }
         )
@@ -146,7 +146,7 @@ function init_results() {
         columnDefs: [
             {
                 targets: [2, 3, 4, 5, 6],
-                className: 'text-right'
+                className: 'text-end'
             },
             {
                 targets: [0],
@@ -178,10 +178,10 @@ function init_results() {
             {title: 'No.', width: '80px'},
             {title: 'Chain ID', width: '80px'},
             {title: 'Protein (link to PDBe)'},
-            {title: 'Q-score', width: '70px', className: 'text-right'},
-            {title: 'RMSD', width: '70px', className: 'text-right'},
-            {title: 'Aligned res.', width: '90px', className: 'text-right'},
-            {title: 'Seq. identity', width: '90px', className: 'text-right'},
+            {title: 'Q-score', width: '70px', className: 'text-end'},
+            {title: 'RMSD', width: '70px', className: 'text-end'},
+            {title: 'Aligned res.', width: '90px', className: 'text-end'},
+            {title: 'Seq. identity', width: '100px', className: 'text-end'},
             {
                 title: 'Alignment',
                 'searchable': false,
