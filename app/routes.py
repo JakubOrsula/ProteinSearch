@@ -455,17 +455,19 @@ def find_similar(job_id: str, obj: str):
         job_data = application.computation_results[job_id]
         k = job_data['num_results']
         radius = job_data['radius']
+        disable_visualizations = job_data['disable_visualizations']
+        disable_search_stats = job_data['disable_search_stats']
     else:
         conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
         c = conn.cursor()
-        sql_select = 'SELECT k, radius FROM savedQueries WHERE job_id = %s'
+        sql_select = 'SELECT k, radius, disable_search_stats, disable_visualizations FROM savedQueries WHERE job_id = %s'
         c.execute(sql_select, (job_id,))
         data = c.fetchall()
         c.close()
         conn.close()
         if not data:
             abort(404)
-        k, radius = data[0]
+        k, radius, disable_search_stats, disable_visualizations = data[0]
 
     new_job_id, chains = prepare_indexed_chain(pdbid)
 
@@ -475,6 +477,8 @@ def find_similar(job_id: str, obj: str):
         'name': pdbid,
         'chain': chain,
         'num_results': k,
+        'disable_search_stats': disable_search_stats,
+        'disable_visualizations': disable_visualizations
     })
 
     return redirect(url_for('results', job_id=new_job_id, chain=chain, name=pdbid))
