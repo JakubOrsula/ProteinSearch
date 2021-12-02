@@ -10,14 +10,16 @@ import sys
 import time
 
 from . import application
-from .config import *
+from .config import config
 from .computation import *
 
 
 @application.route('/', methods=['GET', 'POST'])
 def index():
     if not application.db_stats:
-        conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+        print(config['db']['host'])
+        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                               database=config['db']['database'])
         c = conn.cursor()
 
         c.execute('SELECT COUNT(*) from proteinId')
@@ -123,7 +125,8 @@ def get_details(job_id: str, obj: str):
         chain = job_data['chain']
         statistics = job_data['res_data']['statistics']
     else:
-        conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                               database=config['db']['database'])
         c = conn.cursor()
 
         sql_select = 'SELECT name, chain, statistics FROM savedQueries WHERE job_id = %s'
@@ -153,7 +156,7 @@ def get_pdb(job_id: str, obj: str):
         file = 'query.pdb'
     else:
         file = f'{obj}.aligned.pdb'
-    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), file, cache_timeout=0)
+    return send_from_directory(os.path.join(config['dirs']['computations'], f'query{job_id}'), file, cache_timeout=0)
 
 
 @application.route('/get_random_pdbs')
@@ -176,7 +179,8 @@ def get_protein_names() -> Response:
 
 @application.route('/get_image/<string:job_id>/<string:obj>')
 def get_image(job_id: str, obj: str):
-    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), f'{obj}.aligned.png', cache_timeout=0)
+    return send_from_directory(os.path.join(config['dirs']['computations'], f'query{job_id}'), f'{obj}.aligned.png',
+                               cache_timeout=0)
 
 
 def results_event_stream(job_id: str) -> Generator[str, None, None]:
@@ -191,8 +195,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
     start_time = time.time()
 
-    query_raw_pdb = executor.submit(prepare_PDB_wrapper, job_data['query'], RAW_PDB_DIR,
-                                    os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
+    query_raw_pdb = executor.submit(prepare_PDB_wrapper, job_data['query'], config['dirs']['raw_pdbs'],
+                                    os.path.join(config['dirs']['computations'], f'query{job_id}'))
 
     messif_future = {'sketches_small': executor.submit(get_results_messif, job_data['query'], -1,
                                                        job_data['num_results'], 'sketches_small', job_id),
@@ -370,7 +374,8 @@ def save_query(job_id: str):
     job_data = application.computation_results[job_id]
     statistics = job_data['res_data']
 
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
     sql_insert = ('INSERT IGNORE INTO savedQueries '
                   '(job_id, name, chain, radius, k, statistics, disable_search_stats, disable_visualizations)'
@@ -392,7 +397,7 @@ def get_txt_results(job_id: str):
     res_data = all_data['res_data']['statistics']
 
     filename = f'results_{all_data["query"].replace(":", "_")}.txt'
-    with open(os.path.join(COMPUTATIONS_DIR, f'query{job_id}', filename), 'w') as f:
+    with open(os.path.join(config['dirs']['computations'], f'query{job_id}', filename), 'w') as f:
         f.write('Protein chain search results\n')
         f.write(f'{"=" * 40}\n')
         f.write(f'Query: {all_data["name"]}:{all_data["chain"]}\n')
@@ -410,14 +415,15 @@ def get_txt_results(job_id: str):
                     f'{obj["seq_id"]:5.3f},'
                     f'{obj["aligned"]}\n')
 
-    return send_from_directory(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'), filename, cache_timeout=0,
-                               as_attachment=True)
+    return send_from_directory(os.path.join(config['dirs']['computations'], f'query{job_id}'), filename,
+                               cache_timeout=0, as_attachment=True)
 
 
 @application.route('/saved_query/<string:job_id>')
 def saved_query(job_id: str):
-    dir_exists = os.path.exists(os.path.join(COMPUTATIONS_DIR, f'query{job_id}'))
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    dir_exists = os.path.exists(os.path.join(config['dirs']['computations'], f'query{job_id}'))
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
 
     sql_select = ('SELECT name, chain, statistics, added, disable_search_stats, disable_visualizations '
@@ -458,9 +464,11 @@ def find_similar(job_id: str, obj: str):
         disable_visualizations = job_data['disable_visualizations']
         disable_search_stats = job_data['disable_search_stats']
     else:
-        conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                               database=config['db']['database'])
         c = conn.cursor()
-        sql_select = 'SELECT k, radius, disable_search_stats, disable_visualizations FROM savedQueries WHERE job_id = %s'
+        sql_select = ('SELECT k, radius, disable_search_stats, disable_visualizations '
+                      'FROM savedQueries WHERE job_id = %s')
         c.execute(sql_select, (job_id,))
         data = c.fetchall()
         c.close()

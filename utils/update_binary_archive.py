@@ -39,7 +39,7 @@ def read_protein_title(filename: str) -> Tuple[str, Optional[str]]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='config.ini', help='File with configuration of DB')
+    parser.add_argument('--config', type=str, default='/etc/protein_search.ini', help='File with configuration of DB')
     parser.add_argument('--list-of-files', type=str, default=None, help='List of files to process')
     parser.add_argument('--refresh', action='store_true', default=False, help='Update even if in DB')
     parser.add_argument('--in-directory', type=str, default=None, help='Directory to process')

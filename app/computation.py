@@ -12,11 +12,12 @@ from flask import Request
 from typing import List, Tuple, Dict
 
 import python_distance
-from .config import *
+from .config import config
 
 
 def get_random_pdb_ids(number: int) -> List[str]:
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
     c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %s', (number,))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
@@ -26,7 +27,8 @@ def get_random_pdb_ids(number: int) -> List[str]:
 
 
 def get_names(pdb_ids: List[str]) -> Dict[str, str]:
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
     names = {}
     for pdb_id in pdb_ids:
@@ -40,7 +42,8 @@ def get_names(pdb_ids: List[str]) -> Dict[str, str]:
 
 
 def search_title(query: str, limit: int) -> List[str]:
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
     words = ' '.join(f'+{word}*' for word in query.split())
     sql_query = (f'SELECT id FROM proteinId WHERE id IN '
@@ -55,7 +58,8 @@ def search_title(query: str, limit: int) -> List[str]:
 
 
 def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
     c.execute(f'SELECT gesamtId, chainLength FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
     chains = [(chain_data[0].split(':')[1], chain_data[1]) for chain_data in c.fetchall()]
@@ -64,13 +68,13 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
     if not chains:
         raise RuntimeError('No chains having at least 10 residues detected.')
 
-    tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
+    tmpdir = tempfile.mkdtemp(prefix='query', dir=config['dirs']['computations'])
     os.chmod(tmpdir, 0o755)
 
     prefix = pdb_id[:2].lower()
-    shutil.copy(os.path.join(RAW_PDB_DIR, f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
+    shutil.copy(os.path.join(config['dirs']['raw_pdbs'], f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
     for chain in (chain[0] for chain in chains):
-        filename = os.path.join(ARCHIVE_DIR, prefix, f'{pdb_id}:{chain}.bin')
+        filename = os.path.join(config['dirs']['archive'], prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
 
     job_id = os.path.basename(tmpdir)[len('query'):]
@@ -78,7 +82,7 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
 
 
 def process_input(req: Request) -> Tuple[str, List[Tuple[str, int]]]:
-    tmpdir = tempfile.mkdtemp(prefix='query', dir=COMPUTATIONS_DIR)
+    tmpdir = tempfile.mkdtemp(prefix='query', dir=config['dirs']['computations'])
     os.chmod(tmpdir, 0o755)
     path = os.path.join(tmpdir, 'query')
     req.files['file'].save(path)
@@ -98,7 +102,7 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     if phase in ('sketches_large', 'full'):
         parameters['radius'] = radius
 
-    url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/search'
+    url = f'http://similar-pdb.cerit-sc.cz:{config["ports"][phase]}/search'
     try:
         req = requests.get(url, params=parameters)
     except requests.exceptions.RequestException as e:
@@ -140,7 +144,8 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     if not messif_ids:
         return [], statistics
 
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
     query_template = ', '.join(['%s'] * len(messif_ids))
     c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({query_template})', tuple(messif_ids))
@@ -152,7 +157,8 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
 
 
 def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int, List[float]]:
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
 
     if query == other:
@@ -174,7 +180,8 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
     query_result = c.fetchall()
     if not query_result:
         begin = time.time()
-        _, qscore, rmsd, seq_identity, aligned, T = python_distance.get_results(query, other, ARCHIVE_DIR, min_qscore)
+        _, qscore, rmsd, seq_identity, aligned, T = python_distance.get_results(query, other, config['dirs']['archive'],
+                                                                                min_qscore)
         end = time.time()
         elapsed = int((end - begin) * 1000)
         results = (qscore, rmsd, seq_identity, aligned, T)
@@ -198,14 +205,14 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
 def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id: str, disable_visualizations: bool) \
         -> Tuple[float, float, float, int]:
     qscore, rmsd, seq_identity, aligned, T = get_similarity_results(query, other, min_qscore)
-    directory = os.path.join(COMPUTATIONS_DIR, f'query{job_id}')
+    directory = os.path.join(config['dirs']['computations'], f'query{job_id}')
     if qscore > min_qscore:
         try:
             query_pdb = os.path.join(directory, 'query.pdb')
             if query == other:
                 other_pdb = os.path.join(directory, 'query.pdb')
             else:
-                python_distance.prepare_PDB(other, RAW_PDB_DIR, directory, T)
+                python_distance.prepare_PDB(other, config['dirs']['raw_pdbs'], directory, T)
                 other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
             if not disable_visualizations:
                 output_png = os.path.join(directory, f'{other}.aligned.png')
@@ -223,7 +230,7 @@ def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id
 
 
 def get_progress(job_id: str, phase: str) -> dict:
-    url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/get_progress'
+    url = f'http://similar-pdb.cerit-sc.cz:{config["ports"][phase]}/get_progress'
 
     try:
         req = requests.get(url, params={'job_id': job_id})
@@ -260,7 +267,7 @@ def get_progress(job_id: str, phase: str) -> dict:
 
 
 def end_messif_job(job_id: str, phase: str) -> None:
-    url = f'http://similar-pdb.cerit-sc.cz:{PORTS[phase]}/end_job'
+    url = f'http://similar-pdb.cerit-sc.cz:{config["ports"][phase]}/end_job'
 
     try:
         req = requests.get(url, params={'job_id': job_id})
