@@ -58,21 +58,28 @@ def get_whats_updated(mirror_dir: str, raw_dir: str) -> tuple[list[str], list[st
     return new_files, modified_files, removed_files
 
 
-def remove_chains(files: list[str], conn: mariadb.connection) -> None:
+def remove_chains(files: list[str], raw_dir: str, binary_dir: str, conn: mariadb.connection) -> None:
     cursor = conn.cursor()
-    pdb_ids = [Path(file).with_suffix('').name.upper() for file in files]
-    print(pdb_ids)
-    for pdb_id in pdb_ids:
-        cursor.execute('SELECT intId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
-        int_ids = [res[0] for res in cursor.fetchall()]
+    print(files)
+    for file in files:
+        pdb_id = Path(file).with_suffix('').name.upper()
+        cursor.execute('DELETE FROM protein WHERE pdbId = %s', (pdb_id,))
 
-        # cursor.execute(f'SELECT * FROM proteinChain WHERE intId IN ({})')
-        print(int_ids)
+        cursor.execute('SELECT intId, gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
+        int_ids, chain_ids = zip(*cursor.fetchall())
+        ids_format = ', '.join(['%s'] * len(int_ids))
+        cursor.execute(f'DELETE FROM proteinChain WHERE intId IN ({ids_format})', int_ids)
 
-        # cursor.execute('DELETE FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
-        # cursor.execute('DELETE FROM protein WHERE pdbId = %s', (pdb_id,))
+        # TODO Should we delete from proteinChainMetadata?
+        # cursor.execute(f'DELETE FROM proteinChainMetadata WHERE chainIntId IN ({ids_format})', int_ids)
 
-    # conn.commit()
+        dirpath = get_dir(file)
+        os.remove(Path(raw_dir) / dirpath / file)
+        for chain_id in chain_ids:
+            print(chain_id)
+            os.remove(Path(binary_dir) / dirpath / f'{chain_id}.bin')
+
+    conn.commit()
     cursor.close()
 
 
@@ -179,11 +186,13 @@ def main():
     add_chains(new_files, args.mirror_directory, args.raw_directory, args.binary_directory, conn, executor)
 
     print('*** Removing obsoleted entries ***')
-    remove_chains(removed_files, conn)
+    remove_chains(removed_files, args.raw_directory, args.binary_directory, conn)
+
     print('*** Updating modified entries (1 - remove) ***')
+    remove_chains(modified_files, args.raw_directory, args.binary_directory, conn)
 
     print('*** Updating modified entries (2 - add) ***')
-
+    add_chains(modified_files, args.mirror_directory, args.raw_directory, args.binary_directory, conn, executor)
     conn.close()
 
 
