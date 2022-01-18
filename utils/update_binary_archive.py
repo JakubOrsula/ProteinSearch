@@ -8,7 +8,7 @@ from pathlib import Path
 import python_distance
 import shutil
 import tqdm
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 from concurrent.futures import as_completed, ProcessPoolExecutor
 
 
@@ -37,7 +37,8 @@ def is_updated(filename: str, mirror_dir: str, raw_dir: str) -> Tuple[str, bool]
     return filename, False
 
 
-def get_whats_updated(mirror_dir: str, raw_dir: str, executor: ProcessPoolExecutor) -> Tuple[List[str], List[str], List[str]]:
+def get_whats_updated(mirror_dir: str, raw_dir: str, executor: ProcessPoolExecutor) -> Tuple[
+    List[str], List[str], List[str], Dict[str, int]]:
     mirror_files = set()
     for dirpath, _, fnames in os.walk(Path(mirror_dir)):
         for filename in fnames:
@@ -68,10 +69,13 @@ def get_whats_updated(mirror_dir: str, raw_dir: str, executor: ProcessPoolExecut
         if updated:
             modified_files.append(filename)
 
-    return new_files, modified_files, removed_files
+    stats = {'updated': len(modified_files), 'new': len(new_files), 'removed': len(removed_files),
+             'total': len(mirror_files), 'ok': len(to_check) - len(modified_files)}
+
+    return new_files, modified_files, removed_files, stats
 
 
-def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: mariadb.connection) -> None:
+def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariadb.connection') -> None:
     cursor = conn.cursor()
     print(files)
     for file in files:
@@ -129,7 +133,7 @@ def read_protein_title(filename: str) -> Tuple[str, Optional[str]]:
     return pdb_id, title
 
 
-def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str, conn: mariadb.connection,
+def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str, conn: 'mariadb.connection',
                executor: ProcessPoolExecutor) -> None:
     cursor = conn.cursor()
 
@@ -192,7 +196,13 @@ def main():
     create_necessary_directories(args.mirror_directory, args.binary_directory, args.raw_directory)
 
     print('*** Looking for modifications ***')
-    new_files, modified_files, removed_files = get_whats_updated(args.mirror_directory, args.raw_directory, executor)
+    new_files, modified_files, removed_files, stats = get_whats_updated(args.mirror_directory, args.raw_directory,
+                                                                        executor)
+    print(f'Total files in PDBe: {stats["total"]}')
+    print(f'New files: {stats["new"]}')
+    print(f'Changed files: {stats["updated"]}')
+    print(f'Removed files: {stats["removed"]}')
+    print(f'Up-to-date files: {stats["ok"]}')
 
     print('*** Processing new entries ***')
     add_chains(new_files, args.mirror_directory, args.raw_directory, args.binary_directory, conn, executor)
