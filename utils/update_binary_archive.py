@@ -85,10 +85,7 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
         cursor.execute('SELECT intId, gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
         int_ids, chain_ids = zip(*cursor.fetchall())
         ids_format = ', '.join(['%s'] * len(int_ids))
-        cursor.execute(f'DELETE FROM proteinChain WHERE intId IN ({ids_format})', int_ids)
-
-        # TODO Should we delete from proteinChainMetadata?
-        # cursor.execute(f'DELETE FROM proteinChainMetadata WHERE chainIntId IN ({ids_format})', int_ids)
+        cursor.execute(f'UPDATE proteinChain SET indexedAsDataObject = 0 WHERE intId IN ({ids_format})', int_ids)
 
         dirpath = get_dir(file)
         os.remove(Path(raw_dir) / dirpath / file)
@@ -170,8 +167,6 @@ def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str,
     if chains_to_store:
         cursor.executemany(insert_query, chains_to_store)
         conn.commit()
-
-    # TODO add chains to proteinChainMetadata?
 
     cursor.close()
 

@@ -22,15 +22,15 @@ def index():
                                database=config['db']['database'])
         c = conn.cursor()
 
-        c.execute('SELECT COUNT(*) from proteinId')
+        c.execute('SELECT COUNT(*) FROM proteinId')
         protein_count = c.fetchall()[0][0]
         protein_count = f'{protein_count:,}'.replace(',', ' ')
 
-        c.execute('SELECT COUNT(*) from proteinChain')
+        c.execute('SELECT COUNT(*) FROM proteinChain WHERE indexedAsDataObject = 1')
         chain_count = c.fetchall()[0][0]
         chain_count = f'{chain_count:,}'.replace(',', ' ')
 
-        c.execute('SELECT DATE(MAX(lastUpdate)) from proteinChainMetadata')
+        c.execute('SELECT DATE(MAX(lastUpdate)) FROM proteinChainMetadata')
         last_update = c.fetchall()[0][0]
         c.close()
         conn.close()
