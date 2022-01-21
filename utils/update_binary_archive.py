@@ -83,15 +83,17 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
         cursor.execute('DELETE FROM protein WHERE pdbId = %s', (pdb_id,))
 
         cursor.execute('SELECT intId, gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
-        int_ids, chain_ids = zip(*cursor.fetchall())
-        ids_format = ', '.join(['%s'] * len(int_ids))
-        cursor.execute(f'UPDATE proteinChain SET indexedAsDataObject = 0 WHERE intId IN ({ids_format})', int_ids)
+        result = cursor.fetchall()
+        if result:
+            int_ids, chain_ids = zip(*result)
+            ids_format = ', '.join(['%s'] * len(int_ids))
+            cursor.execute(f'UPDATE proteinChain SET indexedAsDataObject = 0 WHERE intId IN ({ids_format})', int_ids)
 
-        dirpath = get_dir(file)
-        os.remove(Path(raw_dir) / dirpath / file)
-        for chain_id in chain_ids:
-            print(chain_id)
-            os.remove(Path(binary_dir) / dirpath / f'{chain_id}.bin')
+            dirpath = get_dir(file)
+            os.remove(Path(raw_dir) / dirpath / file)
+            for chain_id in chain_ids:
+                print(chain_id)
+                os.remove(Path(binary_dir) / dirpath / f'{chain_id}.bin')
 
     conn.commit()
     cursor.close()
@@ -133,6 +135,8 @@ def read_protein_title(filename: str) -> Tuple[str, Optional[str]]:
 def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str, conn: 'mariadb.connection',
                executor: ProcessPoolExecutor) -> None:
     cursor = conn.cursor()
+
+    print(files)
 
     # Decompress gzipped CIFs
     jobs = [executor.submit(decompress_file, filename, mirror_dir, raw_dir) for filename in files]
