@@ -92,7 +92,6 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
             dirpath = get_dir(file)
             os.remove(Path(raw_dir) / dirpath / file)
             for chain_id in chain_ids:
-                print(chain_id)
                 os.remove(Path(binary_dir) / dirpath / f'{chain_id}.bin')
 
     conn.commit()
@@ -135,7 +134,6 @@ def read_protein_title(filename: str) -> Tuple[str, Optional[str]]:
 def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str, conn: 'mariadb.connection',
                executor: ProcessPoolExecutor) -> None:
     cursor = conn.cursor()
-
     print(files)
 
     # Decompress gzipped CIFs
@@ -167,9 +165,14 @@ def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str,
         conn.commit()
 
     chains_to_store = [(chain_id, size) for _, chain_id, size in converted_chains]
-    insert_query = 'INSERT IGNORE INTO proteinChain (gesamtId, chainLength) VALUES (%s, %s)'
     if chains_to_store:
-        cursor.executemany(insert_query, chains_to_store)
+        # Update modified chains
+        ids_format = ', '.join(['%s'] * len(chains_to_store))
+        cursor.executemany('UPDATE proteinChain SET indexedAsDataObject = 1, added = current_timestamp()'
+                           f'WHERE gesamtId IN ({ids_format})', [x[0] for x in chains_to_store])
+
+        # Store new chains
+        cursor.executemany('INSERT IGNORE INTO proteinChain (gesamtId, chainLength) VALUES (%s, %s)', chains_to_store)
         conn.commit()
 
     cursor.close()
