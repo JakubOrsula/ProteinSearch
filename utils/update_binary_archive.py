@@ -84,15 +84,16 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
 
         cursor.execute('SELECT intId, gesamtId FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
         result = cursor.fetchall()
+        dirpath = get_dir(file)
         if result:
             int_ids, chain_ids = zip(*result)
             ids_format = ', '.join(['%s'] * len(int_ids))
             cursor.execute(f'UPDATE proteinChain SET indexedAsDataObject = 0 WHERE intId IN ({ids_format})', int_ids)
 
-            dirpath = get_dir(file)
-            os.remove(Path(raw_dir) / dirpath / file)
             for chain_id in chain_ids:
-                os.remove(Path(binary_dir) / dirpath / f'{chain_id}.bin')
+                (Path(binary_dir) / dirpath / f'{chain_id}.bin').unlink()
+
+        (Path(raw_dir) / dirpath / file).unlink()
 
     conn.commit()
     cursor.close()
