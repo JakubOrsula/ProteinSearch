@@ -19,7 +19,7 @@ def get_random_pdb_ids(number: int) -> List[str]:
     conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
                            database=config['db']['database'])
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain ORDER BY RAND() LIMIT %s', (number,))
+    c.execute(f'SELECT gesamtId FROM proteinChain WHERE indexedAsDataObject = 1 ORDER BY RAND() LIMIT %s', (number,))
     pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
     c.close()
     conn.close()
@@ -61,7 +61,8 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
     conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
                            database=config['db']['database'])
     c = conn.cursor()
-    c.execute(f'SELECT gesamtId, chainLength FROM proteinChain WHERE gesamtId LIKE %s', (f'{pdb_id}%',))
+    c.execute(f'SELECT gesamtId, chainLength FROM proteinChain WHERE gesamtId LIKE %s AND indexedAsDataObject = 1',
+              (f'{pdb_id}%',))
     chains = [(chain_data[0].split(':')[1], chain_data[1]) for chain_data in c.fetchall()]
     c.close()
     conn.close()
