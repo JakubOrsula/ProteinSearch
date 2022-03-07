@@ -167,13 +167,9 @@ def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str,
 
     chains_to_store = [(chain_id, size) for _, chain_id, size in converted_chains]
     if chains_to_store:
-        # Update modified chains
-        ids_format = ', '.join(['%s'] * len(chains_to_store))
-        cursor.executemany('UPDATE proteinChain SET indexedAsDataObject = 1, added = current_timestamp()'
-                           f'WHERE gesamtId IN ({ids_format})', [x[0] for x in chains_to_store])
-
-        # Store new chains
-        cursor.executemany('INSERT IGNORE INTO proteinChain (gesamtId, chainLength) VALUES (%s, %s)', chains_to_store)
+        cursor.executemany('INSERT INTO proteinChain (gesamtId, chainLength) VALUES (%s, %s)'
+                           'ON DUPLICATE KEY UPDATE indexedAsDataObject = 1, added = current_timestamp()',
+                           chains_to_store)
         conn.commit()
 
     cursor.close()
