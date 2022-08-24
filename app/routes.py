@@ -2,6 +2,7 @@ from flask import render_template, request, flash, send_from_directory, jsonify,
 import os
 import concurrent.futures
 from datetime import datetime
+from pathlib import Path
 import python_distance
 from typing import Generator, Union
 import copy
@@ -156,7 +157,7 @@ def get_pdb(job_id: str, obj: str):
         file = 'query.pdb'
     else:
         file = f'{obj}.aligned.pdb'
-    return send_from_directory(os.path.join(config['dirs']['computations'], f'query{job_id}'), file, cache_timeout=0)
+    return send_from_directory(Path(config['dirs']['computations'], f'query{job_id}'), file, cache_timeout=0)
 
 
 @application.route('/get_random_pdbs')
@@ -179,7 +180,7 @@ def get_protein_names() -> Response:
 
 @application.route('/get_image/<string:job_id>/<string:obj>')
 def get_image(job_id: str, obj: str):
-    return send_from_directory(os.path.join(config['dirs']['computations'], f'query{job_id}'), f'{obj}.aligned.png',
+    return send_from_directory(Path(config['dirs']['computations'], f'query{job_id}'), f'{obj}.aligned.png',
                                cache_timeout=0)
 
 
@@ -196,7 +197,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
     start_time = time.time()
 
     query_raw_pdb = executor.submit(prepare_PDB_wrapper, job_data['query'], config['dirs']['raw_pdbs'],
-                                    os.path.join(config['dirs']['computations'], f'query{job_id}'))
+                                    Path(config['dirs']['computations'], f'query{job_id}'))
 
     messif_future = {'sketches_small': executor.submit(get_results_messif, job_data['query'], -1,
                                                        job_data['num_results'], 'sketches_small', job_id),
@@ -397,7 +398,7 @@ def get_txt_results(job_id: str):
     res_data = all_data['res_data']['statistics']
 
     filename = f'results_{all_data["query"].replace(":", "_")}.txt'
-    with open(os.path.join(config['dirs']['computations'], f'query{job_id}', filename), 'w') as f:
+    with open(Path(config['dirs']['computations'], f'query{job_id}', filename), 'w') as f:
         f.write('Protein chain search results\n')
         f.write(f'{"=" * 40}\n')
         f.write(f'Query: {all_data["name"]}:{all_data["chain"]}\n')
@@ -415,16 +416,13 @@ def get_txt_results(job_id: str):
                     f'{obj["seq_id"]:5.3f},'
                     f'{obj["aligned"]}\n')
 
-    return send_from_directory(os.path.join(config['dirs']['computations'], f'query{job_id}'), filename,
+    return send_from_directory(Path(config['dirs']['computations'], f'query{job_id}'), filename,
                                cache_timeout=0, as_attachment=True)
 
 
 @application.route('/saved_query/<string:job_id>')
 def saved_query(job_id: str):
-    dir_exists = os.path.exists(os.path.join(config['dirs']['computations'], f'query{job_id}'))
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
+    dir_exists = Path(config['dirs']['computations'], f'query{job_id}').exists()
 
     sql_select = ('SELECT name, chain, statistics, added, disable_search_stats, disable_visualizations '
                   'FROM savedQueries WHERE job_id = %s')

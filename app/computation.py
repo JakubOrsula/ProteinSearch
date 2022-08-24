@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tempfile
+from pathlib import Path
 import shutil
 import requests
 import json
@@ -73,23 +74,23 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
     os.chmod(tmpdir, 0o755)
 
     prefix = pdb_id[:2].lower()
-    shutil.copy(os.path.join(config['dirs']['raw_pdbs'], f'{pdb_id.lower()}.cif'), os.path.join(tmpdir, 'query'))
+    shutil.copy(Path(config['dirs']['raw_pdbs'], f'{pdb_id.lower()}.cif'), Path(tmpdir, 'query'))
     for chain in (chain[0] for chain in chains):
-        filename = os.path.join(config['dirs']['archive'], prefix, f'{pdb_id}:{chain}.bin')
-        shutil.copy(filename, os.path.join(tmpdir, f'query:{chain}.bin'))
+        filename = Path(config['dirs']['archive'], prefix, f'{pdb_id}:{chain}.bin')
+        shutil.copy(filename, Path(tmpdir, f'query:{chain}.bin'))
 
-    job_id = os.path.basename(tmpdir)[len('query'):]
+    job_id = Path(tmpdir).name[len('query'):]
     return job_id, chains
 
 
 def process_input(req: Request) -> Tuple[str, List[Tuple[str, int]]]:
     tmpdir = tempfile.mkdtemp(prefix='query', dir=config['dirs']['computations'])
     os.chmod(tmpdir, 0o755)
-    path = os.path.join(tmpdir, 'query')
+    path = Path(tmpdir, 'query')
     req.files['file'].save(path)
 
-    job_id = os.path.basename(tmpdir)[len('query'):]
-    chains = python_distance.save_chains(os.path.join(tmpdir, 'query'), tmpdir, 'query')
+    job_id = Path(tmpdir).name[len('query'):]
+    chains = python_distance.save_chains(Path(tmpdir, 'query'), tmpdir, 'query')
     if not chains:
         raise RuntimeError('No chains having at least 10 residues detected.')
 
@@ -206,18 +207,18 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
 def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id: str, disable_visualizations: bool) \
         -> Tuple[float, float, float, int]:
     qscore, rmsd, seq_identity, aligned, T = get_similarity_results(query, other, min_qscore)
-    directory = os.path.join(config['dirs']['computations'], f'query{job_id}')
+    directory = Path(config['dirs']['computations'], f'query{job_id}')
     if qscore > min_qscore:
         try:
-            query_pdb = os.path.join(directory, 'query.pdb')
+            query_pdb = Path(directory, 'query.pdb')
             if query == other:
-                other_pdb = os.path.join(directory, 'query.pdb')
+                other_pdb = Path(directory, 'query.pdb')
             else:
-                python_distance.prepare_PDB(other, config['dirs']['raw_pdbs'], directory, T)
-                other_pdb = os.path.join(directory, f'{other}.aligned.pdb')
+                python_distance.prepare_PDB(other, config['dirs']['raw_pdbs'], str(directory), T)
+                other_pdb = Path(directory, f'{other}.aligned.pdb')
             if not disable_visualizations:
-                output_png = os.path.join(directory, f'{other}.aligned.png')
-                args = ['pymol', '-qrc', os.path.join(os.path.dirname(__file__), 'draw.pml'), '--', query_pdb,
+                output_png = Path(directory, f'{other}.aligned.png')
+                args = ['pymol', '-qrc', Path(Path(__file__).parent, 'draw.pml'), '--', query_pdb,
                         other_pdb, output_png]
                 subprocess.run(args)
 
