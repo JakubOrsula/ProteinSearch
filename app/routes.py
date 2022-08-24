@@ -197,7 +197,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
     start_time = time.time()
 
     query_raw_pdb = executor.submit(prepare_PDB_wrapper, job_data['query'], config['dirs']['raw_pdbs'],
-                                    Path(config['dirs']['computations'], f'query{job_id}'))
+                                    str(Path(config['dirs']['computations'], f'query{job_id}')))
 
     messif_future = {'sketches_small': executor.submit(get_results_messif, job_data['query'], -1,
                                                        job_data['num_results'], 'sketches_small', job_id),
