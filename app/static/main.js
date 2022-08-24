@@ -433,47 +433,7 @@ function init_results() {
 }
 
 
-function load_molecule(plugin, job_id, name, index) {
-
-    const id = index === 0 ? `${name} (query)` : name;
-    const object = index === 0 ? 'query' : name;
-
-    plugin.loadMolecule({
-        id: id,
-        format: 'pdb',
-        url: `/get_pdb/${job_id}/${object}`,
-        modelRef: 'object-model' + index,
-        doNotCreateVisual: true
-    }).then(
-        () => {
-            let colors = LiteMol.Bootstrap.Immutable.Map();
-            const color = index === 0 ? {r: 0.129, g: 0.607, b: 0.466} : {r: 0.752, g: 0.333, b: 0.098};
-            let style = {
-                type: 'Cartoons',
-                params: {detail: 'Automatic', showDirectionCone: false},
-                theme: {
-                    template: LiteMol.Bootstrap.Visualization.Molecule.Default.UniformThemeTemplate,
-                    colors: colors.set('Uniform', color),
-                    transparency: {}
-                }
-            };
-
-            const t = plugin.createTransform();
-            t.add('object-model' + index, LiteMol.Bootstrap.Entity.Transformer.Molecule.CreateVisual, {style: style})
-            plugin.applyTransform(t);
-        }
-    )
-}
-
-
 function init_details() {
-    let plugin = LiteMol.Plugin.create({
-        target: '#litemol',
-        viewportBackground: '#fff',
-        layoutState: {
-            hideControls: true,
-        },
-    });
 
     const query_name = $('#query').text();
     const other_name = $('#other').text();
@@ -481,8 +441,27 @@ function init_details() {
     const parts = window.location.pathname.split('/')
     const job_id = parts[2];
 
-    load_molecule(plugin, job_id, query_name, 0);
-    load_molecule(plugin, job_id, other_name, 1);
+    molstar.Viewer.create('molstar', {
+        layoutIsExpanded: false,
+        layoutShowControls: false,
+        layoutShowRemoteState: false,
+        layoutShowSequence: true,
+        layoutShowLog: false,
+        layoutShowLeftPanel: false,
+
+        viewportShowExpand: true,
+        viewportShowSelectionMode: false,
+        viewportShowAnimation: false,
+
+        pdbProvider: 'pdbe',
+    }).then(viewer => {
+        viewer.loadStructureFromUrl(`/get_pdb/${job_id}/query`, 'pdb', false, {
+        representationParams: { theme: { globalName: 'uniform', globalColorParams: { value: 0x219b77 }}},
+        label: `${query_name} (query)`});
+        viewer.loadStructureFromUrl(`/get_pdb/${job_id}/${other_name}`, 'pdb', false, {
+        representationParams: { theme: { globalName: 'uniform', globalColorParams: { value: 0xc05519 }}},
+        label: other_name});
+    });
 }
 
 

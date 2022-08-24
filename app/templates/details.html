@@ -5,7 +5,7 @@
 {% endblock title %}
 
 {% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='litemol/css/LiteMol-plugin-light.min.css') }}"
+    <link rel="stylesheet" href="{{ url_for('static', filename='molstar/molstar.css') }}"
           type="text/css">
 {% endblock styles %}
 
@@ -75,7 +75,7 @@
         </div>
         <div class="row">
             <div class="col">
-                <div id="litemol" style="height:600px; position: relative"></div>
+                <div id="molstar" style="height:600px; position: relative"></div>
             </div>
         </div>
     </div>
@@ -83,5 +83,5 @@
 {% endblock body %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='litemol/LiteMol-plugin.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='molstar/molstar.js') }}"></script>
 {% endblock scripts %}
