@@ -1,16 +1,17 @@
 import mariadb
-import os
+from pathlib import Path
 import shutil
 import sys
 import time
 
 sys.path.append('/usr/local/www/ProteinSearch')
 
-from config import *
+from config import config
 
 
 def main():
-    conn = mariadb.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
     c = conn.cursor()
 
     print('Removing old data from DB cache...', end='')
@@ -27,13 +28,13 @@ def main():
     c.execute('SELECT job_id from savedQueries WHERE added > NOW() - INTERVAL 1 WEEK')
     saved_jobs = {res[0] for res in (c.fetchall())}
 
-    for folder_name in os.listdir(COMPUTATIONS_DIR):
-        full_path = os.path.join(COMPUTATIONS_DIR, folder_name)
-        job_id = folder_name[5:]
+    for folder_name in Path(config['dirs']['computations']).iterdir():
+        full_path = Path(config['dirs']['computations'], folder_name)
+        job_id = str(folder_name)[5:]
         if job_id in saved_jobs:
             print('Not removing: ', job_id, ' -- saved query')
             continue
-        if time.time() - os.path.getmtime(full_path) < 24 * 3600:
+        if time.time() - full_path.stat().st_mtime < 24 * 3600:
             print('Not removing: ', job_id, ' -- not old')
             continue
 
