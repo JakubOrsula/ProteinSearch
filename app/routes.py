@@ -157,7 +157,9 @@ def get_pdb(job_id: str, obj: str):
         file = 'query.pdb'
     else:
         file = f'{obj}.aligned.pdb'
-    return send_from_directory(Path(config['dirs']['computations'], f'query{job_id}'), file, cache_timeout=0)
+
+    with open(Path(config['dirs']['computations'], f'query{job_id}', file)) as f:
+        return ''.join(line for line in f if not line.startswith('HETATM'))
 
 
 @application.route('/get_random_pdbs')
