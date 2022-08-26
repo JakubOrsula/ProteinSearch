@@ -16,57 +16,53 @@ import python_distance
 from .config import config
 
 
+class DBConnection:
+    def __enter__(self):
+        self.conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                                    database=config['db']['database'])
+        self.c = self.conn.cursor()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.c.close()
+        self.conn.close()
+
+
 def get_random_pdb_ids(number: int) -> List[str]:
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
-    c.execute(f'SELECT gesamtId FROM proteinChain WHERE indexedAsDataObject = 1 ORDER BY RAND() LIMIT %s', (number,))
-    pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
-    c.close()
-    conn.close()
+    with DBConnection() as db:
+        db.c.execute(f'SELECT gesamtId FROM proteinChain WHERE indexedAsDataObject = 1 ORDER BY RAND() LIMIT %s', (number,))
+        pdb_ids = sorted(row[0].split(':')[0] for row in db.c.fetchall())
     return pdb_ids
 
 
 def get_names(pdb_ids: List[str]) -> Dict[str, str]:
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
     names = {}
-    for pdb_id in pdb_ids:
-        c.execute(f'SELECT name FROM protein WHERE pdbId = %s', (pdb_id,))
-        data = c.fetchall()
-        if data:
-            names[pdb_id] = data[0][0]
-    c.close()
-    conn.close()
+    with DBConnection() as db:
+        for pdb_id in pdb_ids:
+            db.c.execute('SELECT name FROM protein WHERE pdbId = %s', (pdb_id,))
+            data = db.c.fetchall()
+            if data:
+                names[pdb_id] = data[0][0]
     return names
 
 
 def search_title(query: str, limit: int) -> List[str]:
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
     words = ' '.join(f'+{word}*' for word in query.split())
-    sql_query = (f'SELECT id FROM proteinId WHERE id IN '
-                 f'(SELECT pdbId FROM protein WHERE MATCH(name) AGAINST (%s IN BOOLEAN MODE)) '
-                 f'LIMIT %s')
+    sql_query = ('SELECT id FROM proteinId WHERE id IN '
+                 '(SELECT pdbId FROM protein WHERE MATCH(name) AGAINST (%s IN BOOLEAN MODE)) '
+                 'LIMIT %s')
+    with DBConnection() as db:
+        db.c.execute(sql_query, (words, limit))
+        pdb_ids = sorted(row[0].split(':')[0] for row in db.c.fetchall())
 
-    c.execute(sql_query, (words, limit))
-    pdb_ids = sorted(row[0].split(':')[0] for row in c.fetchall())
-    c.close()
-    conn.close()
     return pdb_ids
 
 
 def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
-    c.execute(f'SELECT gesamtId, chainLength FROM proteinChain WHERE gesamtId LIKE %s AND indexedAsDataObject = 1',
-              (f'{pdb_id}%',))
-    chains = [(chain_data[0].split(':')[1], chain_data[1]) for chain_data in c.fetchall()]
-    c.close()
-    conn.close()
+    with DBConnection() as db:
+        db.c.execute('SELECT gesamtId, chainLength FROM proteinChain WHERE gesamtId LIKE %s AND indexedAsDataObject = 1', (f'{pdb_id}%',))
+        chains = [(chain_data[0].split(':')[1], chain_data[1]) for chain_data in db.c.fetchall()]
+
     if not chains:
         raise RuntimeError('No chains having at least 10 residues detected.')
 
@@ -146,61 +142,50 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     if not messif_ids:
         return [], statistics
 
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
-    query_template = ', '.join(['%s'] * len(messif_ids))
-    c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({query_template})', tuple(messif_ids))
-    chain_ids = [candidate[0] for candidate in c.fetchall()]
-    c.close()
-    conn.close()
+    with DBConnection() as db:
+        query_template = ', '.join(['%s'] * len(messif_ids))
+        db.c.execute(f'SELECT gesamtId FROM proteinChain WHERE intId IN ({query_template})', tuple(messif_ids))
+        chain_ids = [candidate[0] for candidate in db.c.fetchall()]
 
     return chain_ids, statistics
 
 
 def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[float, float, float, int, List[float]]:
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
+    with DBConnection() as db:
+        if query == other:
+            db.c.execute('SELECT chainLength FROM proteinChain WHERE gesamtId = %s', (query,))
+            query_result = db.c.fetchall()
+            aligned = -1
+            if not query_result:
+                print(f'ERROR: Query {query} not found in DB')
+            else:
+                aligned = query_result[0][0]
+            T = np.eye(4).flatten().tolist()
+            return 1.0, 0.0, 1.0, aligned, T
 
-    if query == other:
-        c.execute('SELECT chainLength FROM proteinChain WHERE gesamtId = %s', (query,))
-        query_result = c.fetchall()
-        aligned = -1
+        select_query = ('SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats '
+                        'FROM queriesNearestNeighboursStats WHERE queryGesamtId = %s AND nnGesamtId = %s')
+        db.c.execute(select_query, (query, other))
+        query_result = db.c.fetchall()
         if not query_result:
-            print(f'ERROR: Query {query} not found in DB')
+            begin = time.time()
+            _, qscore, rmsd, seq_identity, aligned, T = python_distance.get_results(query, other, config['dirs']['archive'],
+                                                                                    min_qscore)
+            end = time.time()
+            elapsed = int((end - begin) * 1000)
+            results = (qscore, rmsd, seq_identity, aligned, T)
+            if elapsed > 30:
+                insert_query = ('INSERT IGNORE INTO queriesNearestNeighboursStats '
+                                '(evaluationTime, queryGesamtId, nnGesamtId,'
+                                ' qscore, rmsd, alignedResidues, seqIdentity, rotationStats) '
+                                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
+                T_str = ';'.join(f'{x:.3f}' for x in T)
+                db.c.execute(insert_query, (elapsed, query, other, qscore, rmsd, aligned, seq_identity, T_str))
+                db.conn.commit()
         else:
-            aligned = query_result[0][0]
-        T = np.eye(4).flatten().tolist()
-        c.close()
-        conn.close()
-        return 1.0, 0.0, 1.0, aligned, T
-
-    select_query = (f'SELECT qscore, rmsd, seqIdentity, alignedResidues, rotationStats '
-                    f'FROM queriesNearestNeighboursStats WHERE queryGesamtId = %s AND nnGesamtId = %s')
-    c.execute(select_query, (query, other))
-    query_result = c.fetchall()
-    if not query_result:
-        begin = time.time()
-        _, qscore, rmsd, seq_identity, aligned, T = python_distance.get_results(query, other, config['dirs']['archive'],
-                                                                                min_qscore)
-        end = time.time()
-        elapsed = int((end - begin) * 1000)
-        results = (qscore, rmsd, seq_identity, aligned, T)
-        if elapsed > 30:
-            insert_query = (f'INSERT IGNORE INTO queriesNearestNeighboursStats '
-                            f'(evaluationTime, queryGesamtId, nnGesamtId,'
-                            f' qscore, rmsd, alignedResidues, seqIdentity, rotationStats) '
-                            f'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
-            T_str = ';'.join(f'{x:.3f}' for x in T)
-            c.execute(insert_query, (elapsed, query, other, qscore, rmsd, aligned, seq_identity, T_str))
-            conn.commit()
-    else:
-        qscore, rmsd, seq_identity, aligned, T = query_result[0]
-        T = [float(x) for x in T.split(';')]
-        results = float(qscore), float(rmsd), float(seq_identity), int(aligned), T
-    c.close()
-    conn.close()
+            qscore, rmsd, seq_identity, aligned, T = query_result[0]
+            T = [float(x) for x in T.split(';')]
+            results = float(qscore), float(rmsd), float(seq_identity), int(aligned), T
     return results
 
 

@@ -18,23 +18,17 @@ from .computation import *
 @application.route('/', methods=['GET', 'POST'])
 def index():
     if not application.db_stats:
-        print(config['db']['host'])
-        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                               database=config['db']['database'])
-        c = conn.cursor()
+        with DBConnection() as db:
+            db.c.execute('SELECT COUNT(*) FROM proteinId')
+            protein_count = db.c.fetchall()[0][0]
+            protein_count = f'{protein_count:,}'.replace(',', ' ')
 
-        c.execute('SELECT COUNT(*) FROM proteinId')
-        protein_count = c.fetchall()[0][0]
-        protein_count = f'{protein_count:,}'.replace(',', ' ')
+            db.c.execute('SELECT COUNT(*) FROM proteinChain WHERE indexedAsDataObject = 1')
+            chain_count = db.c.fetchall()[0][0]
+            chain_count = f'{chain_count:,}'.replace(',', ' ')
 
-        c.execute('SELECT COUNT(*) FROM proteinChain WHERE indexedAsDataObject = 1')
-        chain_count = c.fetchall()[0][0]
-        chain_count = f'{chain_count:,}'.replace(',', ' ')
-
-        c.execute('SELECT DATE(MAX(lastUpdate)) FROM proteinChainMetadata')
-        last_update = c.fetchall()[0][0]
-        c.close()
-        conn.close()
+            db.c.execute('SELECT DATE(MAX(lastUpdate)) FROM proteinChainMetadata')
+            last_update = db.c.fetchall()[0][0]
 
         application.db_stats = {'protein_count': protein_count, 'chain_count': chain_count, 'updated': last_update}
 
@@ -126,15 +120,11 @@ def get_details(job_id: str, obj: str):
         chain = job_data['chain']
         statistics = job_data['res_data']['statistics']
     else:
-        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                               database=config['db']['database'])
-        c = conn.cursor()
+        with DBConnection() as db:
+            sql_select = 'SELECT name, chain, statistics FROM savedQueries WHERE job_id = %s'
+            db.c.execute(sql_select, (job_id,))
+            data = db.c.fetchall()
 
-        sql_select = 'SELECT name, chain, statistics FROM savedQueries WHERE job_id = %s'
-        c.execute(sql_select, (job_id,))
-        data = c.fetchall()
-        c.close()
-        conn.close()
         if not data:
             abort(404)
         name, chain, statistics = data[0]
@@ -377,19 +367,14 @@ def save_query(job_id: str):
     job_data = application.computation_results[job_id]
     statistics = job_data['res_data']
 
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
-    c = conn.cursor()
-    sql_insert = ('INSERT IGNORE INTO savedQueries '
-                  '(job_id, name, chain, radius, k, statistics, disable_search_stats, disable_visualizations)'
-                  'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
+    with DBConnection() as db:
+        sql_insert = ('INSERT IGNORE INTO savedQueries '
+                      '(job_id, name, chain, radius, k, statistics, disable_search_stats, disable_visualizations)'
+                      'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)')
 
-    c.execute(sql_insert, (job_id, job_data['name'], job_data['chain'], job_data['radius'], job_data['num_results'],
-                           json.dumps(statistics), job_data['disable_search_stats'],
-                           job_data['disable_visualizations']))
-    conn.commit()
-    c.close()
-    conn.close()
+        db.c.execute(sql_insert, (job_id, job_data['name'], job_data['chain'], job_data['radius'], job_data['num_results'],
+                                  json.dumps(statistics), job_data['disable_search_stats'], job_data['disable_visualizations']))
+        db.conn.commit()
 
     return Response(f'{request.url_root}saved_query/{job_id}')
 
@@ -426,12 +411,11 @@ def get_txt_results(job_id: str):
 def saved_query(job_id: str):
     dir_exists = Path(config['dirs']['computations'], f'query{job_id}').exists()
 
-    sql_select = ('SELECT name, chain, statistics, added, disable_search_stats, disable_visualizations '
-                  'FROM savedQueries WHERE job_id = %s')
-    c.execute(sql_select, (job_id,))
-    data = c.fetchall()
-    c.close()
-    conn.close()
+    with DBConnection() as db:
+        sql_select = ('SELECT name, chain, statistics, added, disable_search_stats, disable_visualizations '
+                      'FROM savedQueries WHERE job_id = %s')
+        db.c.execute(sql_select, (job_id,))
+        data = db.c.fetchall()
 
     if not dir_exists or not data:
         return Response('Invalid link.')
@@ -464,15 +448,12 @@ def find_similar(job_id: str, obj: str):
         disable_visualizations = job_data['disable_visualizations']
         disable_search_stats = job_data['disable_search_stats']
     else:
-        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                               database=config['db']['database'])
-        c = conn.cursor()
-        sql_select = ('SELECT k, radius, disable_search_stats, disable_visualizations '
-                      'FROM savedQueries WHERE job_id = %s')
-        c.execute(sql_select, (job_id,))
-        data = c.fetchall()
-        c.close()
-        conn.close()
+        with DBConnection() as db:
+            sql_select = ('SELECT k, radius, disable_search_stats, disable_visualizations '
+                          'FROM savedQueries WHERE job_id = %s')
+            db.c.execute(sql_select, (job_id,))
+            data = db.c.fetchall()
+
         if not data:
             abort(404)
         k, radius, disable_search_stats, disable_visualizations = data[0]
