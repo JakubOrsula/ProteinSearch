@@ -1,27 +1,28 @@
 import mariadb
 from pathlib import Path
 import shutil
-import sys
 import time
-
-sys.path.append('/usr/local/www/ProteinSearch')
-
-from config import config
+import configparser
 
 
 def main():
+    config = configparser.ConfigParser()
+    config.read('/etc/protein_search.ini')
+
     conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
                            database=config['db']['database'])
     c = conn.cursor()
 
     print('Removing old data from DB cache...', end='')
-    query = ('SELECT * FROM queriesNearestNeighboursStats '
+    query = ('DELETE FROM queriesNearestNeighboursStats '
              'WHERE evaluationTime < 1000 AND added <= NOW() - INTERVAL 6 HOUR')
     c.execute(query)
+    conn.commit()
     print('Done.')
 
     print('Removing old saved queries fom DB...', end='')
     c.execute('DELETE FROM savedQueries WHERE added <= NOW() - INTERVAL 1 WEEK')
+    conn.commit()
     print('Done.')
 
     print('Removing old directories with query data...')
@@ -41,7 +42,6 @@ def main():
         shutil.rmtree(full_path)
 
     print('Done.')
-    conn.commit()
     c.close()
     conn.close()
 
