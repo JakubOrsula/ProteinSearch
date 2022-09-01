@@ -86,7 +86,7 @@ def process_input(req: Request) -> Tuple[str, List[Tuple[str, int]]]:
     req.files['file'].save(path)
 
     job_id = Path(tmpdir).name[len('query'):]
-    chains = python_distance.save_chains(Path(tmpdir, 'query'), tmpdir, 'query')
+    chains = python_distance.save_chains(str(Path(tmpdir, 'query')), tmpdir, 'query')
     if not chains:
         raise RuntimeError('No chains having at least 10 residues detected.')
 
