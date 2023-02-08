@@ -108,7 +108,14 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
         print(f'Original exception: {e}')
         raise RuntimeError('MESSIF not responding')
 
-    response = json.loads(req.content.decode('utf-8'))
+    try:
+        response = json.loads(req.content.decode('utf-8'))
+    except json.decoder.JSONDecodeError as e:
+        print(f'ERROR: MESSIF not responding when calling {req.url}')
+        print(f'Original exception: {e}')
+        print(f'Original response: {req.content.decode("utf-8")}')
+        raise RuntimeError('MESSIF returned an incorrect response')
+
     if response['status']['code'] not in (200, 201):
         print(f'ERROR: MESSIF signalized error when calling {req.url}')
         print(f'Response returned: {response}')
@@ -222,11 +229,18 @@ def get_progress(job_id: str, phase: str) -> dict:
     try:
         req = requests.get(url, params={'job_id': job_id})
     except requests.exceptions.RequestException as e:
-        print(f'ERROR: MESSIF not responding when calling {url}')
+        print(f'ERROR: MESSIF not responding when calling {url} with job_id={job_id}')
         print(f'Original exception: {e}')
         raise RuntimeError('MESSIF not responding')
 
-    response = json.loads(req.content.decode('utf-8'))
+    try:
+        response = json.loads(req.content.decode('utf-8'))
+    except json.decoder.JSONDecodeError as e:
+        print(f'ERROR: MESSIF not responding when calling {req.url}')
+        print(f'Original exception: {e}')
+        print(f'Original response: {req.content.decode("utf-8")}')
+        raise RuntimeError('MESSIF returned an incorrect response')
+
     progress = {'running': False}
     try:
         if bool(response['Running']):
