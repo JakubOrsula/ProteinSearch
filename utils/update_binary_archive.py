@@ -182,11 +182,16 @@ def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
     performs a consistency check between binary directory and database
     '''
     gesamt_ids = set()
-    for dirpath, _, fnames in os.walk(Path(raw_dir)):
-        for filename in fnames:
-            file = Path(raw_dir) / get_dir(filename) / filename
-            pdb_id = file.name[:4].upper()
-            gesamt_ids.add(pdb_id)
+    num_top_level_folders = len(
+        [name for name in os.listdir(Path(raw_dir))])
+
+    with tqdm.tqdm(total=num_top_level_folders, desc='Getting ids from filesystem') as pbar:
+        for dirpath, _, fnames in os.walk(Path(raw_dir)):
+            for filename in fnames:
+                file = Path(raw_dir) / get_dir(filename) / filename
+                pdb_id = file.name[:4].upper()
+                gesamt_ids.add(pdb_id)
+            pbar.update(1)
 
     cur = conn.cursor()
     res = cur.execute("select gesamtId from proteinChain")
