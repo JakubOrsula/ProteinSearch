@@ -205,7 +205,7 @@ def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
     print(f"ids in fs {len(gesamt_ids)}")
     print(f"ids in db {len(gesamt_ids_db)}")
     print(f"got {len(diff)} more ids in the filesystem than db")
-    print("Consistency check failed, repair required (not implemented yet). Proceeding to d the update in 10 seconds...")
+    print("Consistency check failed, repair required (not implemented yet).")
     sleep(10)
 
 
@@ -216,7 +216,7 @@ def main():
     parser.add_argument('--binary-directory', type=str, required=True, help='Directory to store binaries')
     parser.add_argument('--raw-directory', type=str, required=True, help='Directory with uncompressed files')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers ')
-    parser.add_argument('--consistency-check', type=bool, default=True, help='Should a consistency check with DB be performed')
+    parser.add_argument('--consistency-check', type=bool, default=False, help='Should a consistency check with DB be performed')
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
@@ -228,7 +228,6 @@ def main():
                                database=config['db']['database'])
         consistency_check(args.raw_directory, conn)
         return
-    sleep(10)
 
     executor = ProcessPoolExecutor(args.workers)
 
