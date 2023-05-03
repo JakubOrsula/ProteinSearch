@@ -194,12 +194,19 @@ def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
             pbar.update(1)
 
     cur = conn.cursor()
-    res = cur.execute("select gesamtId from proteinChain")
+    cur.execute("select gesamtId from proteinChain")
     gesamt_ids_db = set()
-    for gid in res:
+    for gid in cur:
+        gid = gid[0]
         gesamt_ids_db.add(gid.split(':')[0])
 
+    diff = gesamt_ids - gesamt_ids_db
     print(gesamt_ids - gesamt_ids_db)
+    print(f"ids in fs {len(gesamt_ids)}")
+    print(f"ids in db {len(gesamt_ids_db)}")
+    print(f"got {len(diff)} more ids in the filesystem than db")
+    print("Consistency check failed, repair required (not implemented yet). Proceeding to d the update in 10 seconds...")
+    sleep(10)
 
 
 def main():
@@ -209,7 +216,7 @@ def main():
     parser.add_argument('--binary-directory', type=str, required=True, help='Directory to store binaries')
     parser.add_argument('--raw-directory', type=str, required=True, help='Directory with uncompressed files')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers ')
-    parser.add_argument('--consistency-check', type=bool, default=False, help='Should a consistency check with DB be performed')
+    parser.add_argument('--consistency-check', type=bool, default=True, help='Should a consistency check with DB be performed')
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
@@ -219,7 +226,7 @@ def main():
         print("performing consistency check")
         conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
                                database=config['db']['database'])
-        consistency_check(args.raw_dir, conn)
+        consistency_check(args.raw_directory, conn)
         return
     sleep(10)
 
