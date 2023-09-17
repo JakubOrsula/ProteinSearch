@@ -2,3 +2,5 @@ wheel
 flask
 requests
 mod-wsgi # you also need sudo apt-get install apache2-dev
+numpy
+mariadb==1.0.11
