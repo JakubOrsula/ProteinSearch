@@ -1,4 +1,6 @@
 import argparse
+from time import sleep
+
 import mariadb
 import configparser
 import os
@@ -97,7 +99,7 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
 
     conn.commit()
     cursor.close()
-
+#python_distance.save_chains('/mnt/data-ssd/PDBe_raw/fr/1frg.cif', '/tmp', 'test')
 
 def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
     with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as f_in:
@@ -175,6 +177,68 @@ def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str,
     cursor.close()
 
 
+def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
+    '''
+    performs a consistency check between binary directory and database
+    '''
+    gesamt_ids = set()
+    num_top_level_folders = len(
+        [name for name in os.listdir(Path(raw_dir))])
+
+    with tqdm.tqdm(total=num_top_level_folders, desc='Getting ids from filesystem') as pbar:
+        for dirpath, _, fnames in os.walk(Path(raw_dir)):
+            for filename in fnames:
+                file = Path(raw_dir) / get_dir(filename) / filename
+                pdb_id = file.name[:4].upper()
+                gesamt_ids.add(pdb_id)
+            pbar.update(1)
+
+    cur = conn.cursor()
+    cur.execute("select gesamtId from proteinChain")
+    gesamt_ids_db = set()
+    for gid in cur:
+        gid = gid[0]
+        gesamt_ids_db.add(gid.split(':')[0])
+
+    diff = gesamt_ids - gesamt_ids_db
+    print(gesamt_ids - gesamt_ids_db)
+    print(f"ids in fs {len(gesamt_ids)}")
+    print(f"ids in db {len(gesamt_ids_db)}")
+    print(f"got {len(diff)} more ids in the raw_dir than db")
+    print("Consistency check for raw directories failed")
+
+
+def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
+    '''
+    performs a consistency check between raw directory and database
+    '''
+    gesamt_ids = set()
+    num_top_level_folders = len(
+        [name for name in os.listdir(Path(raw_dir))])
+
+    with tqdm.tqdm(total=num_top_level_folders, desc='Getting ids from filesystem') as pbar:
+        for dirpath, _, fnames in os.walk(Path(raw_dir)):
+            for filename in fnames:
+                file = Path(raw_dir) / get_dir(filename) / filename
+                pdb_id = file.name[:4].upper()
+                gesamt_ids.add(pdb_id)
+            pbar.update(1)
+
+    cur = conn.cursor()
+    cur.execute("select gesamtId from proteinChain")
+    gesamt_ids_db = set()
+    for gid in cur:
+        gid = gid[0]
+        gesamt_ids_db.add(gid.split(':')[0])
+
+    diff = gesamt_ids - gesamt_ids_db
+    print(gesamt_ids - gesamt_ids_db)
+    print(f"ids in fs {len(gesamt_ids)}")
+    print(f"ids in db {len(gesamt_ids_db)}")
+    print(f"got {len(diff)} more ids in the raw_dir than db")
+    print("Consistency check for raw directories failed")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='/etc/protein_search.ini', help='File with configuration of DB')
@@ -182,15 +246,21 @@ def main():
     parser.add_argument('--binary-directory', type=str, required=True, help='Directory to store binaries')
     parser.add_argument('--raw-directory', type=str, required=True, help='Directory with uncompressed files')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers ')
+    parser.add_argument('--consistency-check', type=bool, default=False, help='Should a consistency check with DB be performed')
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
     config.read(args.config)
 
+    if args.consistency_check:
+        print("performing consistency check")
+        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                               database=config['db']['database'])
+        consistency_check(args.raw_directory, conn)
+        return
+
     executor = ProcessPoolExecutor(args.workers)
 
-    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                           database=config['db']['database'])
     print('*** Updating directories ***')
     create_necessary_directories(args.mirror_directory, args.binary_directory, args.raw_directory)
 
@@ -202,6 +272,11 @@ def main():
     print(f'Changed files: {stats["updated"]}')
     print(f'Removed files: {stats["removed"]}')
     print(f'Up-to-date files: {stats["ok"]}')
+
+
+    conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
+                           database=config['db']['database'])
+
 
     print('*** Processing new entries ***')
     add_chains(new_files, args.mirror_directory, args.raw_directory, args.binary_directory, conn, executor)
