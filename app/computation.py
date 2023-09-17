@@ -70,7 +70,8 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
     os.chmod(tmpdir, 0o755)
 
     prefix = pdb_id[:2].lower()
-    shutil.copy(Path(config['dirs']['raw_pdbs'], f'{pdb_id.lower()}.cif'), Path(tmpdir, 'query'))
+    # modified for correct access handling
+    shutil.copy(Path(config['dirs']['raw_pdbs'], f'{pdb_id[1:3].lower()}',f'{pdb_id.lower()}.cif'), Path(tmpdir, 'query'))
     for chain in (chain[0] for chain in chains):
         filename = Path(config['dirs']['archive'], prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, Path(tmpdir, f'query:{chain}.bin'))
