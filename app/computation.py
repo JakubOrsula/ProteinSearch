@@ -103,6 +103,7 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     url = f'http://localhost:{config["ports"][phase]}/search' # todo get rid of this hard coding
     try:
         req = requests.get(url, params=parameters)
+        print(f"Final URL: {req.url}")
     except requests.exceptions.RequestException as e:
         print(f'ERROR: MESSIF not responding when calling {url}')
         print(f'Original exception: {e}')
