@@ -22,9 +22,10 @@ def main():
 
     cursor = conn.cursor()
 
-    cursor.execute('SELECT gesamtId, chainLength from proteinChain')
+    cursor.execute('SELECT gesamtId, chainLength from proteinChain WHERE indexedAsDataObject=1')
     data = cursor.fetchall()
     data.sort(key=lambda x: x[1])
+    print(f"got {len(data)} chains")
 
     pivots = []
     chunk_size = len(data) // 512
@@ -46,6 +47,8 @@ def main():
     cursor.execute(f'SELECT intId FROM proteinChain WHERE gesamtId LIKE \'@{pivot_set_id}_%\'')
     ids = [(x[0], pivot_set_id) for x in cursor.fetchall()]
 
+    print(f"inserting {len(ids)} pivots")
+    print(ids[0])
     cursor.executemany('INSERT INTO pivot512 (chainIntId, pivotSetId) VALUES (%s, %s)', ids)
 
     cursor.execute('UPDATE pivotSet SET currentlyUsed = 0 WHERE currentlyUsed = 1')
