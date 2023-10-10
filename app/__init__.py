@@ -14,6 +14,7 @@ application.computation_results = application.mp_manager.dict()
 
 application.secret_key = 'protein search secret key'
 
+
 if __name__ == '__main__':
     application.run()
 

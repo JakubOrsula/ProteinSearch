@@ -1,17 +1,12 @@
 from flask import render_template, request, flash, send_from_directory, jsonify, redirect, url_for, Response, abort
-import os
 import concurrent.futures
 from datetime import datetime
-from pathlib import Path
-import python_distance
 from typing import Generator, Union
 import copy
 import re
 import sys
-import time
 
 from . import application
-from .config import config
 from .computation import *
 
 
@@ -54,8 +49,8 @@ def index():
         except RuntimeError as e:
             flash(f'Internal error: {e}')
             return render_template('index.html', **application.db_stats)
-        except FileNotFoundError:
-            flash('Internal error: Required source file not found.')
+        except FileNotFoundError as e:
+            flash(f'Internal error: Required source file not found. ${e}')
             return render_template('index.html', **application.db_stats)
 
         name = get_names([pdb_id])[pdb_id]
