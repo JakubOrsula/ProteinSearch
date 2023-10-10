@@ -82,7 +82,7 @@ def stress(ids: List[str], num_results: int, radius: float, workers: int, sleep:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--url', type=str, default='http://similar-pdb.cerit-sc.cz', help='URL of the service')
+    parser.add_argument('--url', type=str, default='http://localhost', help='URL of the service')
     parser.add_argument('--port', type=int, default=20001, help='Port of the service')
     parser.add_argument('--sketches-only', dest='sketches_only', action='store_true', default=False,
                         help='Don\'t expect search stats in results')
