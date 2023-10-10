@@ -77,6 +77,7 @@ def search(job_id: str):
     name: str = request.form['input_name']
     radius: float = 1 - float(request.form['qscore_range'])
     num_results: int = int(request.form['num_results'])
+    print(f"started search for chain {chain} under name {name}")
     if request.form['uploaded'] == 'True':
         query = f'_{job_id}:{chain}'
     else:
@@ -99,6 +100,8 @@ def search(job_id: str):
 def results(job_id: str, name: str, chain: str):
     if job_id not in application.computation_results:
         abort(404)
+
+    print(f"redirected to jobs chain {chain}")
 
     disable_search_stats = application.computation_results[job_id]['disable_search_stats']
     disable_visualizations = application.computation_results[job_id]['disable_visualizations']
@@ -179,6 +182,8 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
 
     query_name = f'{job_data["name"]}:{job_data["chain"]}'
 
+    print(f"main loop started for query {query_name}")
+
     executor = concurrent.futures.ProcessPoolExecutor(initializer=set_niceness, initargs=(19,))
 
     start_time = time.time()
@@ -240,6 +245,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         if messif_future['full'] is not None and messif_future['full'].done():
             try:
                 res_data['chain_ids'], stats = messif_future['full'].result()
+                print(f"messiff future result {messif_future['full'].result()}")
                 res_data['full_status'] = 'DONE'
                 res_data['full_statistics'] = stats
             except RuntimeError as e:
@@ -264,6 +270,7 @@ def results_event_stream(job_id: str) -> Generator[str, None, None]:
         disable_visualizations = job_data['disable_visualizations']
         min_qscore = 1 - job_data['radius']
         if query_raw_pdb.done():
+            print(f"res_data['chain_ids'] {res_data['chain_ids']}")
             for chain_id in res_data['chain_ids']:
                 if chain_id not in result_stats:
                     result_stats[chain_id] = executor.submit(get_stats, query, query_name, chain_id, min_qscore, job_id,

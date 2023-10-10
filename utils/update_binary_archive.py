@@ -99,7 +99,6 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
 
     conn.commit()
     cursor.close()
-#python_distance.save_chains('/mnt/data-ssd/PDBe_raw/fr/1frg.cif', '/tmp', 'test')
 
 def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
     with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as f_in:

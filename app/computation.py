@@ -69,9 +69,8 @@ def prepare_indexed_chain(pdb_id: str) -> Tuple[str, List[Tuple[str, int]]]:
     tmpdir = tempfile.mkdtemp(prefix='query', dir=config['dirs']['computations'])
     os.chmod(tmpdir, 0o755)
 
-    prefix = pdb_id[:2].lower()
-    # modified for correct access handling
-    shutil.copy(Path(config['dirs']['raw_pdbs'], f'{pdb_id[1:3].lower()}',f'{pdb_id.lower()}.cif'), Path(tmpdir, 'query'))
+    prefix = pdb_id[1:3].lower()
+    shutil.copy(Path(config['dirs']['raw_pdbs'], prefix,f'{pdb_id.lower()}.cif'), Path(tmpdir, 'query'))
     for chain in (chain[0] for chain in chains):
         filename = Path(config['dirs']['archive'], prefix, f'{pdb_id}:{chain}.bin')
         shutil.copy(filename, Path(tmpdir, f'query:{chain}.bin'))
@@ -101,7 +100,7 @@ def get_results_messif(query: str, radius: float, num_results: int, phase: str, 
     if phase in ('sketches_large', 'full'):
         parameters['radius'] = radius
 
-    url = f'http://similar-pdb.cerit-sc.cz:{config["ports"][phase]}/search'
+    url = f'http://localhost:{config["ports"][phase]}/search' # todo get rid of this hard coding
     try:
         req = requests.get(url, params=parameters)
     except requests.exceptions.RequestException as e:
@@ -177,6 +176,7 @@ def get_similarity_results(query: str, other: str, min_qscore: float) -> Tuple[f
         query_result = db.c.fetchall()
         if not query_result:
             begin = time.time()
+            print(f"trying to get result for query: {query}, other {other} archive_dir {config['dirs']['archive']} q {min_qscore}")
             _, qscore, rmsd, seq_identity, aligned, T = python_distance.get_results(query, other, config['dirs']['archive'],
                                                                                     min_qscore)
             end = time.time()
@@ -225,7 +225,7 @@ def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id
 
 
 def get_progress(job_id: str, phase: str) -> dict:
-    url = f'http://similar-pdb.cerit-sc.cz:{config["ports"][phase]}/get_progress'
+    url = f'http://localhost:{config["ports"][phase]}/get_progress'
 
     try:
         req = requests.get(url, params={'job_id': job_id})
@@ -281,4 +281,5 @@ def end_messif_job(job_id: str, phase: str) -> None:
 
 
 def prepare_PDB_wrapper(query: str, pdb_dir: str, output_dir: str) -> None:
+    print(f"prepare PDB wrapper {query} {pdb_dir} {output_dir}")
     python_distance.prepare_PDB(query, pdb_dir, output_dir, None)
