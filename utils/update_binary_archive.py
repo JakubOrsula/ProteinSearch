@@ -100,6 +100,7 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
     conn.commit()
     cursor.close()
 
+
 def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
     with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as f_in:
         with open(Path(dest_dir) / get_dir(filename) / filename, 'w') as f_out:
@@ -178,7 +179,7 @@ def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str,
 
 def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
     '''
-    performs a consistency check between binary directory and database
+    performs a consistency check between raw directory and database # todo shouldn't it be with binary?
     '''
     gesamt_ids = set()
     num_top_level_folders = len(
