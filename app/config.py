@@ -1,4 +1,4 @@
 import configparser
 
 config = configparser.ConfigParser()
-config.read('/etc/protein_search.ini')
+config.read('../protein_search.ini')
