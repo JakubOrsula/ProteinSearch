@@ -220,8 +220,8 @@ def get_stats(query: str, query_name: str, other: str, min_qscore: float, job_id
                         '-draw', f'text 20, 40 "{query_name} (query)"', '-fill', 'rgb(192, 85, 25)', '-draw',
                         f'text 20, 70 "{other}"', output_png, output_png]
                 subprocess.run(args)
-        except:
-            print('Cannot generate alignment and image')
+        except Exception as e:
+            print('Cannot generate alignment and image', e)
     return qscore, rmsd, seq_identity, aligned
 
 
