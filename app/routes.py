@@ -171,7 +171,7 @@ def get_protein_names() -> Response:
 @application.route('/get_image/<string:job_id>/<string:obj>')
 def get_image(job_id: str, obj: str):
     return send_from_directory(Path(config['dirs']['computations'], f'query{job_id}'), f'{obj}.aligned.png',
-                               cache_timeout=0)
+                               max_age=0)
 
 
 def results_event_stream(job_id: str) -> Generator[str, None, None]:
@@ -406,7 +406,7 @@ def get_txt_results(job_id: str):
                     f'{obj["aligned"]}\n')
 
     return send_from_directory(Path(config['dirs']['computations'], f'query{job_id}'), filename,
-                               cache_timeout=0, as_attachment=True)
+                               max_age=0, as_attachment=True)
 
 
 @application.route('/saved_query/<string:job_id>')
