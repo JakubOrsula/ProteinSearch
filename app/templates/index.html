@@ -53,6 +53,7 @@
                 <p class="lead">
                     Search for the most similar protein chains to a given query chain. <br>
                 </p>
+                See <a href="/static/attributions.html">attributions page</a> for information about project authors.<br>
                 Indexed {{ chain_count }} chains from {{ protein_count }} proteins downloaded from <a
                     href="http://pdbe.org/" rel="noreferrer" target="_blank">PDBe</a>.
                 Last update: {{ updated }}.
@@ -291,6 +292,8 @@
             <input type="hidden" name="uploaded" id="uploaded" value="{{ uploaded }}">
 
         </form>
+    <hr>
+
     </div>
 
 {% endblock body %}

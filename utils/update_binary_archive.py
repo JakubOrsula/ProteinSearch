@@ -93,7 +93,10 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
             cursor.execute(f'UPDATE proteinChain SET indexedAsDataObject = 0 WHERE intId IN ({ids_format})', int_ids)
 
             for chain_id in chain_ids:
-                (Path(binary_dir) / dirpath / f'{chain_id}.bin').unlink()
+                try:
+                    (Path(binary_dir) / dirpath / f'{chain_id}.bin').unlink()
+                except FileNotFoundError:
+                    pass  # the .bin chain might have never existed if gesamt was unable to read the cif file
 
         (Path(raw_dir) / dirpath / file).unlink()
 
@@ -102,16 +105,33 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
 
 
 def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
-    with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as f_in:
-        with open(Path(dest_dir) / get_dir(filename) / filename, 'w') as f_out:
-            shutil.copyfileobj(f_in, f_out)
+    with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as fin:
+        lines = []
+        for line in fin:
+            if line.startswith(('data_', '_entry', 'loop_', '_atom_site', 'ATOM ', 'HETATM ', '#')):
+                lines.append(line)
+        for i, line in enumerate(lines[:-1]):
+            if line.startswith('loop_') and not lines[i + 1].startswith('_atom_site.group_PDB'):
+                lines[i] = None
+        lines = [line for line in lines if line is not None]
+        for i in range(1, len(lines)):
+            if lines[i].startswith('#') and lines[i - 1].startswith('#'):
+                lines[i - 1] = None
+        lines = [line for line in lines if line is not None]
+    with open(Path(dest_dir) / get_dir(filename) / filename, 'w') as fout:
+        fout.writelines(lines)
 
 
 def create_binaries(filename: str, src_dir: str, dest_dir: str) -> List[Tuple[str, str, int]]:
+    empty_cifs = 0
     file = Path(src_dir) / get_dir(filename) / filename
     dirname = get_dir(filename)
     pdb_id = file.name[:4].upper()
     results = python_distance.save_chains(str(file), str(Path(dest_dir) / dirname), pdb_id)
+    if not results:
+        empty_cifs += 1
+        print("No chains extracted from file: ", file)
+    print('empty_cifs', empty_cifs)
     return [(filename, f'{pdb_id}:{chain_id}', size) for chain_id, size in results]
 
 
