@@ -79,7 +79,6 @@ def get_whats_updated(mirror_dir: str, raw_dir: str, executor: ProcessPoolExecut
 
 def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariadb.connection') -> None:
     cursor = conn.cursor()
-    print(files)
     for file in files:
         pdb_id = Path(file).with_suffix('').name.upper()
         cursor.execute('DELETE FROM protein WHERE pdbId = %s', (pdb_id,))
@@ -106,9 +105,19 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
 
 def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
     with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as fin:
+        contents = fin.read()
+
+        # parse the info we care about
+        doc = gemmi.cif.read_string(contents)
+        block = doc.sole_block()
+        pdb_id = block.find_pair('_struct.entry_id')
+        pdb_title = block.find_pair('_struct.title')
+
         lines = []
-        for line in fin:
-            if line.startswith(('data_', '_entry', 'loop_', '_atom_site', 'ATOM ', 'HETATM ', '#')):
+
+        # strip everything else
+        for line in contents.splitlines(keepends=True):
+            if line.startswith(('data_', 'loop_', '_atom_site', 'ATOM ', 'HETATM ', '#')):
                 lines.append(line)
         for i, line in enumerate(lines[:-1]):
             if line.startswith('loop_') and not lines[i + 1].startswith('_atom_site.group_PDB'):
@@ -118,20 +127,18 @@ def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
             if lines[i].startswith('#') and lines[i - 1].startswith('#'):
                 lines[i - 1] = None
         lines = [line for line in lines if line is not None]
+
+    # put the info back in
+    lines += (f"_struct.entry_id {pdb_id}\n", '#\n' + f"_struct.title {pdb_title}\n", '#\n')
     with open(Path(dest_dir) / get_dir(filename) / filename, 'w') as fout:
         fout.writelines(lines)
 
 
 def create_binaries(filename: str, src_dir: str, dest_dir: str) -> List[Tuple[str, str, int]]:
-    empty_cifs = 0
     file = Path(src_dir) / get_dir(filename) / filename
     dirname = get_dir(filename)
     pdb_id = file.name[:4].upper()
     results = python_distance.save_chains(str(file), str(Path(dest_dir) / dirname), pdb_id)
-    if not results:
-        empty_cifs += 1
-        print("No chains extracted from file: ", file)
-    print('empty_cifs', empty_cifs)
     return [(filename, f'{pdb_id}:{chain_id}', size) for chain_id, size in results]
 
 
@@ -157,7 +164,6 @@ def read_protein_title(filename: str) -> Tuple[str, Optional[str]]:
 def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str, conn: 'mariadb.connection',
                executor: ProcessPoolExecutor) -> None:
     cursor = conn.cursor()
-    print(files)
 
     # Decompress gzipped CIFs
     jobs = [executor.submit(decompress_file, filename, mirror_dir, raw_dir) for filename in files]
@@ -197,68 +203,6 @@ def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str,
     cursor.close()
 
 
-def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
-    '''
-    performs a consistency check between raw directory and database # todo shouldn't it be with binary?
-    '''
-    gesamt_ids = set()
-    num_top_level_folders = len(
-        [name for name in os.listdir(Path(raw_dir))])
-
-    with tqdm.tqdm(total=num_top_level_folders, desc='Getting ids from filesystem') as pbar:
-        for dirpath, _, fnames in os.walk(Path(raw_dir)):
-            for filename in fnames:
-                file = Path(raw_dir) / get_dir(filename) / filename
-                pdb_id = file.name[:4].upper()
-                gesamt_ids.add(pdb_id)
-            pbar.update(1)
-
-    cur = conn.cursor()
-    cur.execute("select gesamtId from proteinChain")
-    gesamt_ids_db = set()
-    for gid in cur:
-        gid = gid[0]
-        gesamt_ids_db.add(gid.split(':')[0])
-
-    diff = gesamt_ids - gesamt_ids_db
-    print(gesamt_ids - gesamt_ids_db)
-    print(f"ids in fs {len(gesamt_ids)}")
-    print(f"ids in db {len(gesamt_ids_db)}")
-    print(f"got {len(diff)} more ids in the raw_dir than db")
-    print("Consistency check for raw directories failed")
-
-
-def consistency_check(raw_dir: str, conn: 'mariadb.connection') -> None:
-    '''
-    performs a consistency check between raw directory and database
-    '''
-    gesamt_ids = set()
-    num_top_level_folders = len(
-        [name for name in os.listdir(Path(raw_dir))])
-
-    with tqdm.tqdm(total=num_top_level_folders, desc='Getting ids from filesystem') as pbar:
-        for dirpath, _, fnames in os.walk(Path(raw_dir)):
-            for filename in fnames:
-                file = Path(raw_dir) / get_dir(filename) / filename
-                pdb_id = file.name[:4].upper()
-                gesamt_ids.add(pdb_id)
-            pbar.update(1)
-
-    cur = conn.cursor()
-    cur.execute("select gesamtId from proteinChain")
-    gesamt_ids_db = set()
-    for gid in cur:
-        gid = gid[0]
-        gesamt_ids_db.add(gid.split(':')[0])
-
-    diff = gesamt_ids - gesamt_ids_db
-    print(gesamt_ids - gesamt_ids_db)
-    print(f"ids in fs {len(gesamt_ids)}")
-    print(f"ids in db {len(gesamt_ids_db)}")
-    print(f"got {len(diff)} more ids in the raw_dir than db")
-    print("Consistency check for raw directories failed")
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='/etc/protein_search.ini', help='File with configuration of DB')
@@ -266,18 +210,10 @@ def main():
     parser.add_argument('--binary-directory', type=str, required=True, help='Directory to store binaries')
     parser.add_argument('--raw-directory', type=str, required=True, help='Directory with uncompressed files')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers ')
-    parser.add_argument('--consistency-check', type=bool, default=False, help='Should a consistency check with DB be performed')
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
     config.read(args.config)
-
-    if args.consistency_check:
-        print("performing consistency check")
-        conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
-                               database=config['db']['database'])
-        consistency_check(args.raw_directory, conn)
-        return
 
     executor = ProcessPoolExecutor(args.workers)
 
