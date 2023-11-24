@@ -33,10 +33,17 @@ def is_updated(filename: str, mirror_dir: str, raw_dir: str) -> Tuple[str, bool]
     gzip_path = Path(mirror_dir) / get_dir(filename) / f'{filename}.gz'
     raw_path = Path(raw_dir) / get_dir(filename) / filename
     with gzip.open(gzip_path, 'rt') as f_gzip, open(raw_path, 'r') as f_raw:
-        if f_gzip.read() != f_raw.read():
-            return filename, True
+        gzip_contents = f_gzip.read()
+        raw_contents = f_raw.read()
+        stripped = strip_cif(gzip_contents)
+        stripped = ''.join(stripped)
+        # this if is troublesome
+        # the first part is present just for legacy bins
+        # if all old bins are regenarated, it can be dropped
+        if gzip_contents == raw_contents or stripped == raw_contents:
+            return filename, False
 
-    return filename, False
+    return filename, True
 
 
 def get_whats_updated(mirror_dir: str, raw_dir: str, executor: ProcessPoolExecutor) -> Tuple[
@@ -103,33 +110,37 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
     cursor.close()
 
 
-def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
-    with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as fin:
-        contents = fin.read()
+def strip_cif(cif_content: str):
+    # parse the info we care about
+    doc = gemmi.cif.read_string(cif_content)
+    block = doc.sole_block()
+    pdb_id = block.find_pair('_struct.entry_id')
+    pdb_title = block.find_pair('_struct.title')
 
-        # parse the info we care about
-        doc = gemmi.cif.read_string(contents)
-        block = doc.sole_block()
-        pdb_id = block.find_pair('_struct.entry_id')
-        pdb_title = block.find_pair('_struct.title')
+    lines = []
 
-        lines = []
-
-        # strip everything else
-        for line in contents.splitlines(keepends=True):
-            if line.startswith(('data_', 'loop_', '_atom_site', 'ATOM ', 'HETATM ', '#')):
-                lines.append(line)
-        for i, line in enumerate(lines[:-1]):
-            if line.startswith('loop_') and not lines[i + 1].startswith('_atom_site.group_PDB'):
-                lines[i] = None
-        lines = [line for line in lines if line is not None]
-        for i in range(1, len(lines)):
-            if lines[i].startswith('#') and lines[i - 1].startswith('#'):
-                lines[i - 1] = None
-        lines = [line for line in lines if line is not None]
+    # strip everything else
+    for line in cif_content.splitlines(keepends=True):
+        if line.startswith(('data_', 'loop_', '_atom_site', 'ATOM ', 'HETATM ', '#')):
+            lines.append(line)
+    for i, line in enumerate(lines[:-1]):
+        if line.startswith('loop_') and not lines[i + 1].startswith('_atom_site.group_PDB'):
+            lines[i] = None
+    lines = [line for line in lines if line is not None]
+    for i in range(1, len(lines)):
+        if lines[i].startswith('#') and lines[i - 1].startswith('#'):
+            lines[i - 1] = None
+    lines = [line for line in lines if line is not None]
 
     # put the info back in
     lines += (f"_struct.entry_id {pdb_id}\n", '#\n' + f"_struct.title {pdb_title}\n", '#\n')
+    return lines
+
+
+def decompress_file(filename, src_dir: str, dest_dir: str) -> None:
+    with gzip.open(Path(src_dir) / get_dir(filename) / f'{filename}.gz', 'rt') as fin:
+        contents = fin.read()
+    lines = strip_cif(contents)
     with open(Path(dest_dir) / get_dir(filename) / filename, 'w') as fout:
         fout.writelines(lines)
 
