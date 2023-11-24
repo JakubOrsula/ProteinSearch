@@ -229,10 +229,12 @@ def main():
     print(f'Removed files: {stats["removed"]}')
     print(f'Up-to-date files: {stats["ok"]}')
 
+    if len(removed_files) > 10000 or len(modified_files) > 10000:
+        print('Too many files to remove, aborting...')
+        exit(1)
 
     conn = mariadb.connect(host=config['db']['host'], user=config['db']['user'], password=config['db']['password'],
                            database=config['db']['database'])
-
 
     print('*** Processing new entries ***')
     add_chains(new_files, args.mirror_directory, args.raw_directory, args.binary_directory, conn, executor)
