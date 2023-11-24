@@ -79,7 +79,6 @@ def get_whats_updated(mirror_dir: str, raw_dir: str, executor: ProcessPoolExecut
 
 def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariadb.connection') -> None:
     cursor = conn.cursor()
-    print(files)
     for file in files:
         pdb_id = Path(file).with_suffix('').name.upper()
         cursor.execute('DELETE FROM protein WHERE pdbId = %s', (pdb_id,))
@@ -93,7 +92,10 @@ def remove_chains(files: List[str], raw_dir: str, binary_dir: str, conn: 'mariad
             cursor.execute(f'UPDATE proteinChain SET indexedAsDataObject = 0 WHERE intId IN ({ids_format})', int_ids)
 
             for chain_id in chain_ids:
-                (Path(binary_dir) / dirpath / f'{chain_id}.bin').unlink()
+                try:
+                    (Path(binary_dir) / dirpath / f'{chain_id}.bin').unlink()
+                except FileNotFoundError:
+                    pass  # the .bin chain might have never existed if gesamt was unable to read the cif file
 
         (Path(raw_dir) / dirpath / file).unlink()
 
@@ -137,7 +139,6 @@ def read_protein_title(filename: str) -> Tuple[str, Optional[str]]:
 def add_chains(files: List[str], mirror_dir: str, raw_dir: str, binary_dir: str, conn: 'mariadb.connection',
                executor: ProcessPoolExecutor) -> None:
     cursor = conn.cursor()
-    print(files)
 
     # Decompress gzipped CIFs
     jobs = [executor.submit(decompress_file, filename, mirror_dir, raw_dir) for filename in files]
